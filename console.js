@@ -103,6 +103,15 @@ async function handleRunMission() {
 
     } catch (fetchError) {
         showError(`Network error: ${fetchError.message}`);
+
+        // Log to Infra Doctor (non-blocking)
+        logInfraErrorToApi(`Console network error: ${fetchError.message}`, {
+            error: String(fetchError),
+            origin: window.location.origin,
+            api_base: API_BASE_URL,
+            user_agent: navigator.userAgent
+        });
+
         console.error('Fetch error:', fetchError);
     } finally {
         setLoadingState(false);
@@ -302,4 +311,29 @@ function escapeHtml(text) {
  */
 function capitalizeFirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Log infrastructure errors to the API for Infra Doctor diagnostics
+ * Non-blocking - won't break the UI if it fails
+ */
+async function logInfraErrorToApi(errorMessage, extraContext) {
+    try {
+        await fetch(`${API_BASE_URL}/infra/log`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                level: 'ERROR',
+                source: 'console',
+                event_type: 'CORS_OR_NETWORK_ERROR',
+                message: errorMessage,
+                context: extraContext || {}
+            })
+        });
+    } catch (e) {
+        // Silently fail - don't break the UI
+        console.warn('Failed to log infra error:', e);
+    }
 }
