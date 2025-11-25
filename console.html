@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missionize Console (Beta)</title>
+    <link rel="stylesheet" href="console.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Missionize Console <span class="beta-badge">BETA</span></h1>
+            <nav>
+                <a href="index.html" class="back-link">← Back to Home</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="console-container">
+        <!-- Input Panel -->
+        <section class="input-panel">
+            <h2>Mission Input</h2>
+
+            <div class="form-group">
+                <label for="api-key">API Key</label>
+                <input
+                    type="password"
+                    id="api-key"
+                    placeholder="Enter your Missionize API key"
+                    autocomplete="off"
+                />
+                <small class="help-text">Keep your API key secure. Never commit it to git.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="mission-json">Mission Payload (JSON)</label>
+                <textarea
+                    id="mission-json"
+                    rows="12"
+                    placeholder='Leave empty for default, or enter custom JSON:
+{
+  "task": "Your mission here",
+  "require_consensus": true
+}'
+                ></textarea>
+                <small class="help-text">
+                    Default: <code>{"task": "What is 2+2?", "require_consensus": true}</code>
+                </small>
+            </div>
+
+            <button id="run-button" class="run-button">
+                <span class="button-text">Run Mission</span>
+                <span class="spinner" style="display: none;">⏳</span>
+            </button>
+
+            <div id="error-display" class="error-message" style="display: none;"></div>
+        </section>
+
+        <!-- Output Panel -->
+        <section class="output-panel">
+            <h2>Mission Response</h2>
+
+            <div id="output-container" class="output-empty">
+                <p>👈 Enter your API key and run a mission to see results here.</p>
+            </div>
+
+            <div id="response-summary" class="response-summary" style="display: none;">
+                <h3>Summary</h3>
+                <div id="summary-content"></div>
+            </div>
+
+            <div id="response-raw" class="response-raw" style="display: none;">
+                <h3>Raw JSON Response</h3>
+                <pre id="raw-json-content"></pre>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>
+            Missionize Console (Beta) |
+            <a href="https://api.missionize.ai/docs" target="_blank">API Docs</a> |
+            <a href="https://github.com/raggedymoon/missionize-api-service" target="_blank">GitHub</a>
+        </p>
+    </footer>
+
+    <script src="console.js"></script>
+</body>
+</html>
