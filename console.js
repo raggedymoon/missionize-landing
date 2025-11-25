@@ -58,14 +58,20 @@ async function handleRunMission() {
     if (missionText === '') {
         // Use default mission
         missionPayload = DEFAULT_MISSION;
-    } else {
-        // Parse custom JSON
+    } else if (missionText.startsWith('{')) {
+        // User provided JSON - parse it
         try {
             missionPayload = JSON.parse(missionText);
         } catch (parseError) {
             showError(`Invalid JSON: ${parseError.message}`);
             return;
         }
+    } else {
+        // User provided natural language - wrap it
+        missionPayload = {
+            task: missionText,
+            require_consensus: true
+        };
     }
 
     // Clear previous errors
