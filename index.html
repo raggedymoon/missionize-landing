@@ -3,123 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Missionize - Multi-Agent AI System</title>
+    <title>Missionize - The Black Box for AI Agents</title>
+    <meta name="description" content="Ship safer AI automations in hours, not months. Multi-agent review, cryptographic audit trails, and deterministic replay - all behind a simple API.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --color-bg: #0a0a0f;
+            --color-bg-secondary: #12121a;
+            --color-bg-card: #1a1a24;
+            --color-text: #f0f0f5;
+            --color-text-muted: #8888a0;
+            --color-accent: #2dd4bf;
+            --color-accent-blue: #38bdf8;
+            --color-gradient-start: #38bdf8;
+            --color-gradient-end: #2dd4bf;
+            --color-border: #2a2a3a;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 800px;
-            background: white;
-            border-radius: 12px;
-            padding: 3rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: #667eea;
-            margin-bottom: 1rem;
-        }
-
-        .tagline {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 2rem;
-        }
-
-        .description {
-            font-size: 1rem;
-            color: #555;
-            margin-bottom: 2rem;
-            line-height: 1.8;
-        }
-
-        .cta-button {
-            display: inline-block;
-            padding: 1rem 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
-            margin: 0.5rem;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .secondary-button {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .secondary-button:hover {
-            background: #f5f5f5;
-        }
-
-        footer {
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 1px solid #e0e0e0;
-            color: #888;
-            font-size: 0.9rem;
-        }
-
-        footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background-color: var(--color-bg); color: var(--color-text); line-height: 1.6; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 15, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--color-border); padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { height: 36px; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--color-text); }
+        .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; font-size: 0.95rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end)); color: #0a0a0f; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(45, 212, 191, 0.3); }
+        .btn-secondary { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+        .btn-secondary:hover { border-color: var(--color-accent); color: var(--color-accent); }
+        .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 8rem 2rem 4rem; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 800px; height: 800px; background: radial-gradient(circle, rgba(45, 212, 191, 0.1) 0%, transparent 70%); pointer-events: none; }
+        .hero-content { max-width: 800px; text-align: center; position: relative; z-index: 1; }
+        .hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 700; line-height: 1.1; margin-bottom: 1.5rem; }
+        .gradient-text { background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero p { font-size: 1.25rem; color: var(--color-text-muted); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .hero-note { margin-top: 1.5rem; font-size: 0.9rem; color: var(--color-text-muted); }
+        section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .section-header { text-align: center; margin-bottom: 4rem; }
+        .section-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+        .section-header p { color: var(--color-text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+        .problem { background: var(--color-bg-secondary); border-radius: 16px; padding: 4rem; margin: 4rem auto; max-width: 900px; }
+        .problem h2 { font-size: 2rem; margin-bottom: 2rem; text-align: center; }
+        .problem-list { list-style: none; display: grid; gap: 1rem; }
+        .problem-list li { display: flex; align-items: flex-start; gap: 1rem; font-size: 1.1rem; color: var(--color-text-muted); }
+        .problem-list li::before { content: '✗'; color: #ef4444; font-weight: bold; flex-shrink: 0; }
+        .problem-conclusion { margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border); text-align: center; font-size: 1.1rem; color: var(--color-text); }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+        .feature-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; padding: 2rem; transition: all 0.3s; }
+        .feature-card:hover { border-color: var(--color-accent); transform: translateY(-4px); }
+        .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+        .feature-card h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+        .feature-card p { color: var(--color-text-muted); font-size: 0.95rem; }
+        .code-section { background: var(--color-bg-secondary); border-radius: 16px; padding: 4rem; margin: 4rem 0; }
+        .code-block { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.8; }
+        .code-block .comment { color: var(--color-text-muted); }
+        .code-block .keyword { color: var(--color-accent-blue); }
+        .code-block .string { color: var(--color-accent); }
+        .steps { display: grid; gap: 2rem; max-width: 700px; margin: 0 auto; }
+        .step { display: flex; gap: 1.5rem; align-items: flex-start; }
+        .step-number { width: 48px; height: 48px; background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-bg); flex-shrink: 0; }
+        .step-content h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+        .step-content p { color: var(--color-text-muted); }
+        .pricing-card { background: var(--color-bg-card); border: 2px solid var(--color-accent); border-radius: 16px; padding: 3rem; max-width: 500px; margin: 0 auto; text-align: center; position: relative; }
+        .pricing-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--color-gradient-start), var(--color-gradient-end)); color: var(--color-bg); padding: 0.5rem 1.5rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .pricing-card h3 { font-size: 1.5rem; margin-bottom: 1rem; margin-top: 1rem; }
+        .pricing-amount { font-size: 4rem; font-weight: 700; }
+        .pricing-amount span { font-size: 1.25rem; color: var(--color-text-muted); font-weight: 400; }
+        .pricing-features { list-style: none; margin: 2rem 0; text-align: left; }
+        .pricing-features li { padding: 0.75rem 0; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--color-border); }
+        .pricing-features li:last-child { border-bottom: none; }
+        .pricing-features li::before { content: '✓'; color: var(--color-accent); font-weight: bold; }
+        .pricing-note { margin-top: 1.5rem; font-size: 0.9rem; color: var(--color-text-muted); }
+        .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .audience-card { background: var(--color-bg-secondary); border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+        .audience-icon { font-size: 2rem; }
+        footer { border-top: 1px solid var(--color-border); padding: 3rem 2rem; text-align: center; color: var(--color-text-muted); }
+        .footer-content { max-width: 1200px; margin: 0 auto; }
+        .footer-logo { height: 32px; margin-bottom: 1rem; }
+        @media (max-width: 768px) {
+            nav { padding: 1rem; }
+            .nav-links { display: none; }
+            .hero { padding: 6rem 1rem 3rem; }
+            .problem { padding: 2rem; margin: 2rem 1rem; }
+            section { padding: 3rem 1rem; }
+            .code-section { padding: 2rem 1rem; }
+            .pricing-card { padding: 2rem; }
+            .pricing-amount { font-size: 3rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Missionize</h1>
-        <p class="tagline">Multi-Agent AI System</p>
-
-        <p class="description">
-            Missionize is a distributed multi-agent AI system that uses consensus-based decision making
-            to solve complex tasks. Multiple AI agents collaborate, critique, and reach agreement
-            on the best solution for your missions.
-        </p>
-
-        <div>
-            <a href="console.html" class="cta-button">Try Console (Beta)</a>
-            <a href="https://api.missionize.ai/docs" target="_blank" class="cta-button secondary-button">API Docs</a>
+    <nav>
+        <div class="nav-container">
+            <img src="https://raw.githubusercontent.com/raggedymoon/missionize-landing/main/missionize_logo_horizontal_white.png" alt="Missionize" class="logo">
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="https://buy.stripe.com/fZu5kv27ZdXWeEH6Jh7N600" class="btn btn-primary">Get Early Access</a>
+            </div>
         </div>
+    </nav>
 
-        <footer>
-            <p>
-                <a href="https://github.com/raggedymoon/missionize-api-service" target="_blank">GitHub</a> |
-                <a href="https://api.missionize.ai/docs" target="_blank">API Documentation</a>
-            </p>
-        </footer>
+    <section class="hero">
+        <div class="hero-content">
+            <h1>The <span class="gradient-text">Black Box</span> for AI Agents</h1>
+            <p>Ship safer AI automations in hours, not months. Multi-agent review, cryptographic audit trails, and deterministic replay — all behind a simple API.</p>
+            <div class="hero-cta">
+                <a href="https://buy.stripe.com/fZu5kv27ZdXWeEH6Jh7N600" class="btn btn-primary">Get Early Access – $49/mo</a>
+                <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+            </div>
+            <p class="hero-note">For developers who are tired of "it worked on my machine" from their AI agents.</p>
+        </div>
+    </section>
+
+    <div class="problem">
+        <h2>Building serious AI workflows is terrifying.</h2>
+        <ul class="problem-list">
+            <li>One bad change can break everything in production</li>
+            <li>No one knows why an agent made a decision</li>
+            <li>Debugging multi-step automations is pure pain</li>
+            <li>Compliance teams want audit trails you don't have</li>
+        </ul>
+        <p class="problem-conclusion">Right now, if you're shipping AI tools or agents, you're basically hoping nothing blows up.</p>
     </div>
+
+    <section id="features">
+        <div class="section-header">
+            <h2>The Missionize Engine</h2>
+            <p>Turn your AI workflows into repeatable, auditable "missions."</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Multi-Agent Consensus</h3>
+                <p>Guardian → Proposer → Challenger → Arbiter validate every mission before it runs. Catch hallucinations before they ship.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧾</div>
+                <h3>Evidence Envelopes</h3>
+                <p>Every mission generates a cryptographically signed record of what happened, why, and at what cost. SHA-256 + HMAC chains.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔁</div>
+                <h3>Deterministic Replay</h3>
+                <p>Re-run any mission exactly as it happened — same inputs, same context, same agent decisions. Debug in minutes, not days.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Pattern Registry</h3>
+                <p>Mission patterns (bugs, regressions, high-risk flows) are automatically learned and tracked over time.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="code-section">
+        <div class="section-header">
+            <h2>Simple API. Powerful Results.</h2>
+            <p>Everything you need in a few lines of code.</p>
+        </div>
+        <div class="code-block">
+            <span class="comment"># Run a mission through the Missionize engine</span><br>
+            <span class="keyword">curl</span> -X POST https://api.missionize.ai/run \<br>
+            &nbsp;&nbsp;-H <span class="string">"X-API-Key: your-key"</span> \<br>
+            &nbsp;&nbsp;-d <span class="string">'{"mission": "analyze_data", "inputs": {...}}'</span><br><br>
+            <span class="comment"># Something went wrong? Replay it exactly</span><br>
+            <span class="keyword">curl</span> https://api.missionize.ai/replay/session_abc123 \<br>
+            &nbsp;&nbsp;-H <span class="string">"X-API-Key: your-key"</span><br><br>
+            <span class="comment"># Get the evidence envelope for compliance</span><br>
+            <span class="keyword">curl</span> https://api.missionize.ai/evidence/sessions/abc123 \<br>
+            &nbsp;&nbsp;-H <span class="string">"X-API-Key: your-key"</span>
+        </div>
+    </div>
+
+    <section id="how-it-works">
+        <div class="section-header">
+            <h2>How It Works</h2>
+            <p>Get from zero to production-grade AI in minutes.</p>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Send us a mission</h3>
+                    <p>POST /run with your mission payload — description, code context, risk level, inputs.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Missionize evaluates & executes</h3>
+                    <p>Multi-agent review, pattern checks, and safety gates run automatically. Evidence is captured in an envelope.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Get structured results</h3>
+                    <p>Outcome (approved/rejected), agent reasoning, test status, and links to evidence + replay.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Replay & audit any time</h3>
+                    <p>Use /replay and /evidence endpoints to debug, audit, or prove what happened to compliance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-header">
+            <h2>Who It's For</h2>
+            <p>This early access is for builders who are already shipping AI.</p>
+        </div>
+        <div class="audience-grid">
+            <div class="audience-card">
+                <div class="audience-icon">🧑‍💻</div>
+                <div>Indie devs building AI tools or agents</div>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🏗️</div>
+                <div>Small teams wiring together LLM workflows</div>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🧪</div>
+                <div>Automation agencies running client workflows</div>
+            </div>
+            <div class="audience-card">
+                <div class="audience-icon">🧬</div>
+                <div>Folks who want compliance-grade rails without a rewrite</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing">
+        <div class="section-header">
+            <h2>Early Access Pricing</h2>
+            <p>Simple pricing. Lock in this rate for life.</p>
+        </div>
+        <div class="pricing-card">
+            <div class="pricing-badge">Founding User Bonus</div>
+            <h3>Developer Plan</h3>
+            <div class="pricing-amount">$49<span>/month</span></div>
+            <ul class="pricing-features">
+                <li>Access to Missionize API</li>
+                <li>Multi-agent review for all missions</li>
+                <li>Evidence Envelopes with crypto audit trails</li>
+                <li>Deterministic replay</li>
+                <li>Pattern Registry access</li>
+                <li>Email support & onboarding help</li>
+                <li>Priority influence on roadmap</li>
+            </ul>
+            <a href="https://buy.stripe.com/fZu5kv27ZdXWeEH6Jh7N600" class="btn btn-primary" style="width: 100%; text-align: center;">Start with Early Access</a>
+            <p class="pricing-note">Lock this price in for life while your subscription stays active.</p>
+        </div>
+    </section>
+
+    <section style="text-align: center; padding: 6rem 2rem;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Stop Hoping. Start Knowing.</h2>
+        <p style="color: var(--color-text-muted); font-size: 1.2rem; margin-bottom: 2rem;">Your AI agents deserve better debugging tools. You deserve to sleep at night.</p>
+        <a href="https://buy.stripe.com/fZu5kv27ZdXWeEH6Jh7N600" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem;">Get Early Access – $49/mo</a>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <img src="https://raw.githubusercontent.com/raggedymoon/missionize-landing/main/missionize_logo_horizontal_white.png" alt="Missionize" class="footer-logo">
+            <p>Built by Adrian Bailey · Commissionze Inc · Concord, NC</p>
+            <p style="margin-top: 0.5rem; font-size: 0.85rem;">© 2025 Commissionze Inc. All rights reserved. Patent Pending.</p>
+        </div>
+    </footer>
 </body>
 </html>
