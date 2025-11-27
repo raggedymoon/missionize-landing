@@ -7,6 +7,33 @@ const API_BASE_URL = 'https://api.missionize.ai';
 const TOKEN_KEY = 'missionize_jwt';
 
 // ============================================================================
+// Logo Animation Helpers
+// ============================================================================
+
+/**
+ * Get the logo element for the current page (dashboard or auth)
+ * @returns {HTMLElement|null} Logo container element or null if not found
+ */
+function getLogoElement() {
+    return document.querySelector('.dashboard-logo, .auth-logo');
+}
+
+/**
+ * Toggle the "working" animation state on the logo
+ * @param {boolean} isWorking - True to show working animation, false to hide
+ */
+function setLogoWorking(isWorking) {
+    const logo = getLogoElement();
+    if (!logo) return;
+
+    if (isWorking) {
+        logo.classList.add('working');
+    } else {
+        logo.classList.remove('working');
+    }
+}
+
+// ============================================================================
 // JWT Utilities
 // ============================================================================
 
@@ -89,6 +116,9 @@ async function apiCall(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Show working animation
+    setLogoWorking(true);
+
     // Make request
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -115,6 +145,9 @@ async function apiCall(endpoint, options = {}) {
     } catch (error) {
         // Re-throw network or parsing errors
         throw error;
+    } finally {
+        // Always hide working animation, even on errors
+        setLogoWorking(false);
     }
 }
 

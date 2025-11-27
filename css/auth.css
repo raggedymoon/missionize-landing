@@ -599,3 +599,38 @@ body {
         grid-template-columns: 1fr;
     }
 }
+/* ============================================================================
+   LOGO ANIMATION - Working State Indicator
+   ============================================================================ */
+.dashboard-logo img,
+.auth-logo img {
+    transition: all 0.3s ease;
+}
+/* Pulse/glow animation when Missionize is working */
+.dashboard-logo.working img,
+.auth-logo.working img {
+    animation: logo-pulse 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(45, 212, 191, 0.6));
+}
+@keyframes logo-pulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(45, 212, 191, 0.4));
+    }
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 16px rgba(45, 212, 191, 0.8));
+    }
+}
+/* Status bar indicators also animate when working */
+.status-bar.working .status-indicator.online {
+    animation: indicator-pulse 1s ease-in-out infinite;
+}
+@keyframes indicator-pulse {
+    0%, 100% {
+        box-shadow: 0 0 4px currentColor;
+    }
+    50% {
+        box-shadow: 0 0 12px currentColor;
+    }
+}
