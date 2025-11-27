@@ -8,10 +8,17 @@ const DEFAULT_MISSION = {
     task: 'What is 2+2?',
     require_consensus: true
 };
+const API_KEY_STORAGE_KEY = 'missionize_api_key';
+const REQUEST_TIMEOUT_MS = 120000; // 120 seconds
 
 // DOM elements
-let apiKeyInput, missionJsonTextarea, runButton, errorDisplay;
+let apiKeyInput, missionJsonTextarea, runButton, errorDisplay, loadingMessage;
 let outputContainer, responseSummary, responseRaw, summaryContent, rawJsonContent;
+
+// Timer tracking
+let elapsedTimer = null;
+let requestStartTime = null;
+let abortController = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,11 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
     missionJsonTextarea = document.getElementById('mission-json');
     runButton = document.getElementById('run-button');
     errorDisplay = document.getElementById('error-display');
+    loadingMessage = document.getElementById('loading-message');
     outputContainer = document.getElementById('output-container');
     responseSummary = document.getElementById('response-summary');
     responseRaw = document.getElementById('response-raw');
     summaryContent = document.getElementById('summary-content');
     rawJsonContent = document.getElementById('raw-json-content');
+
+    // Load saved API key from localStorage
+    loadSavedApiKey();
 
     // Attach event listeners
     runButton.addEventListener('click', handleRunMission);
@@ -38,6 +49,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Missionize Console initialized');
 });
+
+/**
+ * Load saved API key from localStorage
+ */
+function loadSavedApiKey() {
+    try {
+        const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (savedKey) {
+            apiKeyInput.value = savedKey;
+        }
+    } catch (e) {
+        console.warn('Failed to load saved API key:', e);
+    }
+}
+
+/**
+ * Save API key to localStorage
+ */
+function saveApiKey(apiKey) {
+    try {
+        localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    } catch (e) {
+        console.warn('Failed to save API key:', e);
+    }
+}
+
+/**
+ * Update loading message with elapsed time
+ */
+function updateLoadingMessage(seconds) {
+    if (loadingMessage) {
+        loadingMessage.innerHTML = `⏳ <strong>Processing with 5 AI agents...</strong> (${seconds}s)`;
+    }
+}
+
+/**
+ * Start elapsed time counter
+ */
+function startElapsedTimer() {
+    requestStartTime = Date.now();
+    let elapsed = 0;
+
+    updateLoadingMessage(elapsed);
+
+    elapsedTimer = setInterval(() => {
+        elapsed = Math.floor((Date.now() - requestStartTime) / 1000);
+        updateLoadingMessage(elapsed);
+    }, 1000);
+}
+
+/**
+ * Stop elapsed time counter
+ */
+function stopElapsedTimer() {
+    if (elapsedTimer) {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
+    }
+    requestStartTime = null;
+}
 
 /**
  * Main handler for running a mission
@@ -74,22 +145,37 @@ async function handleRunMission() {
         };
     }
 
-    // Clear previous errors
+    // Clear previous errors and responses
     hideError();
+    hideLoadingMessage();
 
     // Show loading state
     setLoadingState(true);
+    showLoadingMessage();
+    startElapsedTimer();
+
+    // Create abort controller for timeout
+    abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+        if (abortController) {
+            abortController.abort();
+        }
+    }, REQUEST_TIMEOUT_MS);
 
     try {
-        // Call API
+        // Call API with timeout
         const response = await fetch(`${API_BASE_URL}/run-custom`, {
             method: 'POST',
             headers: {
                 'X-API-Key': apiKey,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(missionPayload)
+            body: JSON.stringify(missionPayload),
+            signal: abortController.signal
         });
+
+        // Clear timeout if request completed
+        clearTimeout(timeoutId);
 
         // Get response data
         const responseData = await response.json();
@@ -97,24 +183,38 @@ async function handleRunMission() {
         // Handle response
         if (response.ok) {
             displaySuccess(responseData);
+            // Save API key on successful request
+            saveApiKey(apiKey);
         } else {
             displayError(response.status, responseData);
         }
 
     } catch (fetchError) {
-        showError(`Network error: ${fetchError.message}`);
+        // Clear timeout
+        clearTimeout(timeoutId);
 
-        // Log to Infra Doctor (non-blocking)
-        logInfraErrorToApi(`Console network error: ${fetchError.message}`, {
-            error: String(fetchError),
-            origin: window.location.origin,
-            api_base: API_BASE_URL,
-            user_agent: navigator.userAgent
-        });
+        // Handle abort (timeout)
+        if (fetchError.name === 'AbortError') {
+            showError(`⏱️ Request timed out after 2 minutes. The AI agents may still be processing — please try again or simplify the mission.`);
+        } else {
+            showError(`Network error: ${fetchError.message}`);
+
+            // Log to Infra Doctor (non-blocking)
+            logInfraErrorToApi(`Console network error: ${fetchError.message}`, {
+                error: String(fetchError),
+                origin: window.location.origin,
+                api_base: API_BASE_URL,
+                user_agent: navigator.userAgent
+            });
+        }
 
         console.error('Fetch error:', fetchError);
     } finally {
+        // Always clean up loading state
         setLoadingState(false);
+        hideLoadingMessage();
+        stopElapsedTimer();
+        abortController = null;
     }
 }
 
@@ -153,19 +253,77 @@ function displayError(statusCode, errorData) {
 }
 
 /**
+ * Get status display information based on response data
+ */
+function getStatusDisplay(response) {
+    const status = response?.status;
+    const note = response?.note || "";
+
+    // Degraded mode: status="unavailable" + note mentions "degraded single-agent"
+    if (status === "unavailable" && note.toLowerCase().includes("degraded single-agent")) {
+        return {
+            text: "Degraded Mode (Single Agent)",
+            className: "status-degraded",
+            icon: "⚠️"
+        };
+    }
+
+    // Full consensus success
+    if (status === "completed") {
+        return {
+            text: "Full Consensus",
+            className: "status-success",
+            icon: "✅"
+        };
+    }
+
+    // Failed
+    if (status === "failed") {
+        return {
+            text: "Failed",
+            className: "status-error",
+            icon: "❌"
+        };
+    }
+
+    // Blocked
+    if (status === "blocked") {
+        return {
+            text: "Blocked",
+            className: "status-error",
+            icon: "🚫"
+        };
+    }
+
+    // Generic unavailable (not degraded mode)
+    if (status === "unavailable") {
+        return {
+            text: "Unavailable",
+            className: "status-error",
+            icon: "❌"
+        };
+    }
+
+    // Unknown
+    return {
+        text: status || "Unknown",
+        className: "status-error",
+        icon: "❓"
+    };
+}
+
+/**
  * Generate human-readable summary from response data
  */
 function generateSummaryHTML(data) {
     let html = '<div class="summary-grid">';
 
-    // Status
-    const statusIcon = data.status === 'completed' ? '✅' :
-                       data.status === 'failed' ? '❌' :
-                       data.status === 'unavailable' ? '⚠️' : '❓';
+    // Status - use helper to get styled display
+    const statusDisplay = getStatusDisplay(data);
 
     html += `
         <div class="summary-item">
-            <strong>Status:</strong> ${statusIcon} ${data.status || 'Unknown'}
+            <strong>Status:</strong> <span class="${statusDisplay.className}">${statusDisplay.icon} ${statusDisplay.text}</span>
         </div>
     `;
 
@@ -275,6 +433,25 @@ function showError(message) {
  */
 function hideError() {
     errorDisplay.style.display = 'none';
+}
+
+/**
+ * Show loading message
+ */
+function showLoadingMessage() {
+    if (loadingMessage) {
+        loadingMessage.style.display = 'block';
+    }
+}
+
+/**
+ * Hide loading message
+ */
+function hideLoadingMessage() {
+    if (loadingMessage) {
+        loadingMessage.style.display = 'none';
+        loadingMessage.textContent = '';
+    }
 }
 
 /**

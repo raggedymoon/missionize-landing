@@ -15,6 +15,14 @@ body {
     line-height: 1.6;
     color: #ffffff;
     background: #0a0a0a;
+    overflow-x: hidden;
+}
+
+/* Console Shell - Centered container for entire console */
+.console-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 16px;
 }
 
 /* Header */
@@ -27,11 +35,22 @@ header {
 }
 
 .header-content {
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.console-logo {
+    height: 36px;
+    object-fit: contain;
 }
 
 header h1 {
@@ -65,13 +84,15 @@ header h1 {
 
 /* Main Console Container */
 .console-container {
-    max-width: 1400px;
+    max-width: 100%;
+    width: 100%;
     margin: 2rem auto;
-    padding: 0 2rem;
+    padding: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     min-height: calc(100vh - 200px);
+    box-sizing: border-box;
 }
 
 /* Panels */
@@ -82,6 +103,9 @@ header h1 {
     padding: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     border: 1px solid #333333;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .input-panel h2,
@@ -180,6 +204,22 @@ header h1 {
     background: #444;
 }
 
+/* Loading Message */
+.loading-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(45, 212, 191, 0.1);
+    border-left: 4px solid #2dd4bf;
+    border-radius: 4px;
+    color: #2dd4bf;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.loading-message strong {
+    color: #2dd4bf;
+}
+
 /* Error Display */
 .error-message {
     margin-top: 1rem;
@@ -266,6 +306,22 @@ header h1 {
     color: #fcd34d;
 }
 
+/* Status Labels - Match dark + cyan theme */
+.status-success {
+    color: #2dd4bf;  /* Cyan/teal for full consensus success */
+    font-weight: 600;
+}
+
+.status-degraded {
+    color: #facc15;  /* Amber/yellow for degraded mode warning */
+    font-weight: 600;
+}
+
+.status-error {
+    color: #f97373;  /* Soft red for errors/failures */
+    font-weight: 600;
+}
+
 .response-raw pre {
     background: #0a0a0a;
     color: #e5e7eb;
@@ -277,6 +333,10 @@ header h1 {
     max-height: 600px;
     overflow-y: auto;
     border: 1px solid #333333;
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-sizing: border-box;
 }
 
 /* Footer */
@@ -303,10 +363,11 @@ footer a:hover {
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .console-container {
         grid-template-columns: 1fr;
-        padding: 0 1rem;
+        padding: 0;
+        gap: 1.5rem;
     }
 
     header {
@@ -321,6 +382,8 @@ footer a:hover {
     .input-panel,
     .output-panel {
         padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
     }
 
     .summary-grid {
