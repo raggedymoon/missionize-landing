@@ -58,9 +58,12 @@ function loadSavedApiKey() {
         const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
         if (savedKey) {
             apiKeyInput.value = savedKey;
+            console.log('[CONSOLE] ✓ Loaded API key from localStorage (length:', savedKey.length, ')');
+        } else {
+            console.log('[CONSOLE] No saved API key found in localStorage');
         }
     } catch (e) {
-        console.warn('Failed to load saved API key:', e);
+        console.error('[CONSOLE] ✗ Failed to load saved API key:', e);
     }
 }
 
@@ -70,8 +73,9 @@ function loadSavedApiKey() {
 function saveApiKey(apiKey) {
     try {
         localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+        console.log('[CONSOLE] ✓ Saved API key to localStorage (length:', apiKey.length, ')');
     } catch (e) {
-        console.warn('Failed to save API key:', e);
+        console.error('[CONSOLE] ✗ Failed to save API key:', e);
     }
 }
 
@@ -154,6 +158,9 @@ async function handleRunMission() {
     showLoadingMessage();
     startElapsedTimer();
 
+    console.log('[CONSOLE] → Starting mission:', missionPayload);
+    console.log('[CONSOLE] → Calling API:', `${API_BASE_URL}/run-custom`);
+
     // Create abort controller for timeout
     abortController = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -177,15 +184,21 @@ async function handleRunMission() {
         // Clear timeout if request completed
         clearTimeout(timeoutId);
 
+        console.log('[CONSOLE] ← API response status:', response.status);
+
         // Get response data
         const responseData = await response.json();
 
+        console.log('[CONSOLE] ← API response data:', responseData);
+
         // Handle response
         if (response.ok) {
+            console.log('[CONSOLE] ✓ Mission successful');
             displaySuccess(responseData);
             // Save API key on successful request
             saveApiKey(apiKey);
         } else {
+            console.error('[CONSOLE] ✗ Mission failed with status:', response.status);
             displayError(response.status, responseData);
         }
 
@@ -193,10 +206,14 @@ async function handleRunMission() {
         // Clear timeout
         clearTimeout(timeoutId);
 
+        console.error('[CONSOLE] ✗ Fetch error:', fetchError);
+
         // Handle abort (timeout)
         if (fetchError.name === 'AbortError') {
+            console.error('[CONSOLE] ✗ Request timed out after 120 seconds');
             showError(`⏱️ Request timed out after 2 minutes. The AI agents may still be processing — please try again or simplify the mission.`);
         } else {
+            console.error('[CONSOLE] ✗ Network error:', fetchError.message);
             showError(`Network error: ${fetchError.message}`);
 
             // Log to Infra Doctor (non-blocking)
@@ -207,8 +224,6 @@ async function handleRunMission() {
                 user_agent: navigator.userAgent
             });
         }
-
-        console.error('Fetch error:', fetchError);
     } finally {
         // Always clean up loading state
         setLoadingState(false);
