@@ -51,7 +51,7 @@ function isAuthenticated() {
  */
 function redirectIfNotAuthenticated() {
     if (!isAuthenticated()) {
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
     }
 }
 
@@ -61,7 +61,7 @@ function redirectIfNotAuthenticated() {
  */
 function redirectIfAuthenticated() {
     if (isAuthenticated()) {
-        window.location.href = '/dashboard.html';
+        window.location.href = 'dashboard.html';
     }
 }
 
@@ -99,7 +99,7 @@ async function apiCall(endpoint, options = {}) {
         // Handle 401 Unauthorized - redirect to login
         if (response.status === 401) {
             clearToken();
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
             throw new Error('Unauthorized - redirecting to login');
         }
 
@@ -450,7 +450,7 @@ function copyToClipboard(text) {
  */
 function logout() {
     clearToken();
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
 }
 
 /**
