@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Missionize</title>
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item" id="api-status">
+                <span class="status-indicator online" id="api-indicator"></span>
+                <span class="status-label">API:</span>
+                <span class="status-value" id="api-status-text">Checking...</span>
+            </div>
+
+            <div class="status-item tooltip" id="mizzi-status">
+                <span class="status-indicator standby" id="mizzi-indicator"></span>
+                <span class="status-label">Mizzi:</span>
+                <span class="status-value" id="mizzi-status-text">Standby</span>
+                <span class="tooltip-text">
+                    Mizzi is the immortal sidecar that keeps Missionize alive even when the main service crashes.
+                    It monitors health, logs traces, and can resurrect failed missions. Status will show 'online'
+                    when actively running missions, 'standby' when idle, and 'offline' if disconnected.
+                </span>
+            </div>
+
+            <div class="status-refresh">
+                <button class="btn btn-secondary" id="refresh-status-btn">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-logo">
+                <img src="logo.svg" alt="Missionize">
+            </div>
+
+            <div class="dashboard-user">
+                <span class="user-email" id="user-email">Loading...</span>
+                <button class="btn btn-secondary" id="logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Alert Message -->
+            <div id="alert" class="alert"></div>
+
+            <!-- Profile Section -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Profile</h2>
+                    <p>Your account information</p>
+                </div>
+
+                <div class="card">
+                    <div class="profile-info">
+                        <div class="info-row">
+                            <span class="info-label">Email</span>
+                            <span class="info-value" id="profile-email">Loading...</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Plan</span>
+                            <span class="info-value" id="profile-plan">Loading...</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Member Since</span>
+                            <span class="info-value" id="profile-created">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Keys Section -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>API Keys</h2>
+                    <p>Manage your API keys for authentication</p>
+                </div>
+
+                <!-- API Keys List -->
+                <div class="api-keys-list" id="api-keys-list" style="display: none;">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Empty State -->
+                <div class="card empty-state" id="empty-state">
+                    <div class="empty-state-icon">🔑</div>
+                    <p>No API keys yet</p>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">Create your first API key to get started</p>
+                </div>
+
+                <!-- Create Key Button -->
+                <button class="btn btn-primary create-key-btn" id="create-key-btn">
+                    Create New API Key
+                </button>
+            </div>
+
+            <!-- Coming Soon Cards -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Features</h2>
+                    <p>Coming soon to your dashboard</p>
+                </div>
+
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon">📊</div>
+                        <h3>Usage Analytics <span class="badge badge-warning">Coming Soon</span></h3>
+                        <p>Track your API usage, request counts, and cost metrics in real-time</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">🎯</div>
+                        <h3>Mission History <span class="badge badge-warning">Coming Soon</span></h3>
+                        <p>View all completed missions with full trace logs and consensus votes</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">♻️</div>
+                        <h3>Recovery Console <span class="badge badge-warning">Coming Soon</span></h3>
+                        <p>Resurrect failed missions from Mizzi's trace logs and retry with fixes</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon">💳</div>
+                        <h3>Billing & Plans <span class="badge badge-warning">Coming Soon</span></h3>
+                        <p>Upgrade to paid plans, view invoices, and manage payment methods</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Key Modal -->
+    <div class="modal" id="create-key-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New API Key</h3>
+            </div>
+
+            <div class="form-group">
+                <label for="key-name-input">Key Name</label>
+                <input
+                    type="text"
+                    id="key-name-input"
+                    class="form-input"
+                    placeholder="e.g., Production Key, Development Key"
+                    maxlength="100"
+                >
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-create-key">Cancel</button>
+                <button class="btn btn-primary" id="confirm-create-key">Create Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Key Modal (shows full key one time only) -->
+    <div class="modal" id="new-key-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>API Key Created</h3>
+            </div>
+
+            <p style="color: var(--color-text-muted); margin-bottom: 1rem;">
+                Save this API key securely. You won't be able to see it again!
+            </p>
+
+            <div class="code-display" id="new-key-display">
+                mz_live_...
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="copy-key-btn">Copy to Clipboard</button>
+                <button class="btn btn-primary" id="close-new-key-modal">I've Saved It</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Initialize dashboard on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initDashboard();
+        });
+    </script>
+</body>
+</html>
