@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Missionize Console (Beta) - Styles
  * Dark theme matching landing page
  */
@@ -242,6 +242,8 @@ header h1 {
 .response-summary,
 .response-raw {
     margin-bottom: 2rem;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .response-summary h3,
@@ -262,6 +264,9 @@ header h1 {
     background: #1a1a1a;
     border-radius: 6px;
     border-left: 3px solid #2dd4bf;
+    overflow: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .summary-item.full-width {
@@ -281,6 +286,9 @@ header h1 {
     border-radius: 4px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    box-sizing: border-box;
     color: #e5e7eb;
 }
 
@@ -322,7 +330,8 @@ header h1 {
     font-weight: 600;
 }
 
-.response-raw pre {
+.response-raw pre,
+#raw-json-content {
     background: #0a0a0a;
     color: #e5e7eb;
     padding: 1.5rem;
@@ -336,6 +345,7 @@ header h1 {
     max-width: 100%;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-wrap: anywhere;
     box-sizing: border-box;
 }
 
@@ -390,3 +400,4 @@ footer a:hover {
         grid-template-columns: 1fr;
     }
 }
+
