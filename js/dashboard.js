@@ -294,7 +294,7 @@ function generateSummaryHTML(data) {
 async function loadApiKeys() {
     try {
         const jwt = localStorage.getItem('missionize_jwt');
-        const response = await fetch(`${API_BASE_URL}/api-keys/list`, {
+        const response = await fetch(`${API_BASE_URL}/user/api-keys`, {
             headers: {
                 'Authorization': `Bearer ${jwt}`
             }
@@ -352,7 +352,7 @@ async function handleCreateKey() {
 
     try {
         const jwt = localStorage.getItem('missionize_jwt');
-        const response = await fetch(`${API_BASE_URL}/api-keys/create`, {
+        const response = await fetch(`${API_BASE_URL}/user/api-keys`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${jwt}`,
@@ -392,7 +392,7 @@ async function deleteApiKey(keyId) {
 
     try {
         const jwt = localStorage.getItem('missionize_jwt');
-        const response = await fetch(`${API_BASE_URL}/api-keys/${keyId}`, {
+        const response = await fetch(`${API_BASE_URL}/user/api-keys/${keyId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${jwt}`

@@ -1,9 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Missionize Console (Beta)</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="stylesheet" href="console.css">
 </head>
 <body>
@@ -17,7 +21,7 @@
                 <h1>Missionize Console <span class="beta-badge">BETA</span></h1>
             </div>
             <nav>
-                <a href="index.html" class="back-link">← Back to Home</a>
+                <a href="index.html" class="back-link">â† Back to Home</a>
             </nav>
         </div>
     </header>
@@ -57,10 +61,13 @@ Examples:
 
             <button id="run-button" class="run-button">
                 <span class="button-text">Run Mission</span>
-                <span class="spinner" style="display: none;">⏳</span>
+                <span class="spinner" style="display: none;">â³</span>
             </button>
 
             <div id="loading-message" class="loading-message" style="display: none;"></div>
+            <div id="progress-bar-container" class="progress-bar-container" style="display: none;">
+                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+            </div>
             <div id="error-display" class="error-message" style="display: none;"></div>
         </section>
 
@@ -69,7 +76,7 @@ Examples:
             <h2>Mission Response</h2>
 
             <div id="output-container" class="output-empty">
-                <p>👈 Enter your API key and run a mission to see results here.</p>
+                <p>ðŸ‘ˆ Enter your API key and run a mission to see results here.</p>
             </div>
 
             <div id="response-summary" class="response-summary" style="display: none;">
