@@ -14,11 +14,16 @@ const REQUEST_TIMEOUT_MS = 120000; // 120 seconds
 // DOM elements
 let apiKeyInput, missionJsonTextarea, runButton, errorDisplay, loadingMessage;
 let outputContainer, responseSummary, responseRaw, summaryContent, rawJsonContent;
+let progressBarContainer, progressBarFill;
 
 // Timer tracking
 let elapsedTimer = null;
 let requestStartTime = null;
 let abortController = null;
+
+// Progress tracking
+let fakeProgressInterval = null;
+let fakeProgress = 0;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
     responseRaw = document.getElementById('response-raw');
     summaryContent = document.getElementById('summary-content');
     rawJsonContent = document.getElementById('raw-json-content');
+    progressBarContainer = document.getElementById('progress-bar-container');
+    progressBarFill = document.getElementById('progress-bar-fill');
 
     // Load saved API key from localStorage
     loadSavedApiKey();
@@ -115,6 +122,58 @@ function stopElapsedTimer() {
 }
 
 /**
+ * Update progress bar to specified percentage
+ */
+function updateProgress(pct) {
+    if (progressBarFill) {
+        progressBarFill.style.width = pct + '%';
+    }
+}
+
+/**
+ * Start fake progress animation
+ * Increments by 10% every 3 seconds, capped at 90%
+ */
+function startFakeProgress() {
+    fakeProgress = 5;  // Start at 5%
+    updateProgress(fakeProgress);
+
+    // Show progress bar
+    if (progressBarContainer) {
+        progressBarContainer.style.display = 'block';
+    }
+
+    // Animate fake progress every 3 seconds
+    fakeProgressInterval = setInterval(() => {
+        if (fakeProgress < 90) {
+            fakeProgress = Math.min(fakeProgress + 10, 90);
+            updateProgress(fakeProgress);
+        }
+    }, 3000);
+}
+
+/**
+ * Stop fake progress animation
+ */
+function stopFakeProgress() {
+    if (fakeProgressInterval) {
+        clearInterval(fakeProgressInterval);
+        fakeProgressInterval = null;
+    }
+}
+
+/**
+ * Hide progress bar
+ */
+function hideProgressBar() {
+    if (progressBarContainer) {
+        progressBarContainer.style.display = 'none';
+    }
+    updateProgress(0);
+    fakeProgress = 0;
+}
+
+/**
  * Main handler for running a mission
  */
 async function handleRunMission() {
@@ -149,14 +208,19 @@ async function handleRunMission() {
         };
     }
 
+    // Force FAST mode to prevent timeout (reduces response time from 50-75s to ~5s)
+    missionPayload.execution_mode = "fast";
+
     // Clear previous errors and responses
     hideError();
     hideLoadingMessage();
+    hideProgressBar();
 
     // Show loading state
     setLoadingState(true);
     showLoadingMessage();
     startElapsedTimer();
+    startFakeProgress();
 
     console.log('[CONSOLE] → Starting mission:', missionPayload);
     console.log('[CONSOLE] → Calling API:', `${API_BASE_URL}/run-custom`);
@@ -194,6 +258,18 @@ async function handleRunMission() {
         // Handle response
         if (response.ok) {
             console.log('[CONSOLE] ✓ Mission successful');
+
+            // Update progress from backend if available
+            if (responseData.progress_events && responseData.progress_events.length > 0) {
+                const lastProgress = responseData.progress_events[responseData.progress_events.length - 1];
+                stopFakeProgress();
+                updateProgress(lastProgress.pct);
+            }
+
+            // Set progress to 100% on completion
+            stopFakeProgress();
+            updateProgress(100);
+
             displaySuccess(responseData);
             // Save API key on successful request
             saveApiKey(apiKey);
@@ -229,7 +305,13 @@ async function handleRunMission() {
         setLoadingState(false);
         hideLoadingMessage();
         stopElapsedTimer();
+        stopFakeProgress();
         abortController = null;
+
+        // Hide progress bar after a short delay to show completion
+        setTimeout(() => {
+            hideProgressBar();
+        }, 2000);
     }
 }
 
