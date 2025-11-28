@@ -200,22 +200,30 @@ async function updateStatusBar() {
     const apiStatusText = document.getElementById('api-status-text');
     const mizziStatusText = document.getElementById('mizzi-status-text');
 
-    // Check API status
-    const apiStatus = await checkApiStatus();
-    if (apiIndicator) {
-        apiIndicator.className = `status-indicator ${apiStatus}`;
-    }
-    if (apiStatusText) {
-        apiStatusText.textContent = apiStatus.charAt(0).toUpperCase() + apiStatus.slice(1);
-    }
+    // Show working animation during status check
+    setLogoWorking(true);
 
-    // Check Mizzi status
-    const mizziStatus = await checkMizziStatus();
-    if (mizziIndicator) {
-        mizziIndicator.className = `status-indicator ${mizziStatus}`;
-    }
-    if (mizziStatusText) {
-        mizziStatusText.textContent = mizziStatus.charAt(0).toUpperCase() + mizziStatus.slice(1);
+    try {
+        // Check API status
+        const apiStatus = await checkApiStatus();
+        if (apiIndicator) {
+            apiIndicator.className = `status-indicator ${apiStatus}`;
+        }
+        if (apiStatusText) {
+            apiStatusText.textContent = apiStatus.charAt(0).toUpperCase() + apiStatus.slice(1);
+        }
+
+        // Check Mizzi status
+        const mizziStatus = await checkMizziStatus();
+        if (mizziIndicator) {
+            mizziIndicator.className = `status-indicator ${mizziStatus}`;
+        }
+        if (mizziStatusText) {
+            mizziStatusText.textContent = mizziStatus.charAt(0).toUpperCase() + mizziStatus.slice(1);
+        }
+    } finally {
+        // Always hide working animation
+        setLogoWorking(false);
     }
 }
 
