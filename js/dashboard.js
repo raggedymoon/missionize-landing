@@ -134,8 +134,9 @@ async function handleRunMission() {
         return;
     }
 
-    // Check if user has API keys
-    if (currentApiKeys.length === 0) {
+    // Check if user has saved API key in localStorage
+    const apiKey = localStorage.getItem('missionize_api_key');
+    if (!apiKey) {
         showAlert('Please create an API key first in the API Keys tab', 'error');
         return;
     }
@@ -178,7 +179,7 @@ async function handleRunMission() {
         const response = await fetch(`${API_BASE_URL}/run-custom`, {
             method: 'POST',
             headers: {
-                'X-API-Key': currentApiKeys[0].raw_key || selectedApiKey,
+                'X-API-Key': apiKey,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(missionPayload),
@@ -367,6 +368,9 @@ async function handleCreateKey() {
 
         const data = await response.json();
 
+        // Save the full API key to localStorage immediately
+        localStorage.setItem('missionize_api_key', data.key);
+
         // Show new key modal
         document.getElementById('new-key-display').textContent = data.key;
         hideModal('create-key-modal');
@@ -402,6 +406,9 @@ async function deleteApiKey(keyId) {
         if (!response.ok) {
             throw new Error('Failed to delete API key');
         }
+
+        // Clear the stored API key from localStorage
+        localStorage.removeItem('missionize_api_key');
 
         await loadApiKeys();
         showAlert('API key deleted successfully', 'success');
