@@ -82,10 +82,18 @@
         </div>
     </div>
 
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="js/auth.js"></script>
     <script>
         // Redirect to dashboard if already logged in
-        redirectIfAuthenticated();
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                window.location.href = 'dashboard.html';
+            }
+        })();
 
         // Handle registration form submission
         document.getElementById('register-form').addEventListener('submit', async (e) => {
@@ -132,26 +140,20 @@
             registerBtn.textContent = 'Creating account...';
 
             try {
-                // Call register API
-                const response = await apiCall('/auth/register', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        plan: 'free'
-                    })
-                });
+                // Sign up with Supabase
+                const { data, error } = await signUp(email, password);
 
-                // Save JWT token
-                setToken(response.token);
+                if (error) {
+                    throw new Error(error.message);
+                }
 
                 // Show success message
-                showAlert('Account created successfully! Redirecting...', 'success');
+                showAlert('Account created successfully! Check your email to confirm.', 'success');
 
                 // Redirect to dashboard after short delay
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
-                }, 1000);
+                }, 2000);
 
             } catch (error) {
                 console.error('Registration error:', error);
@@ -159,7 +161,7 @@
                 // Handle specific error messages
                 let errorMessage = error.message || 'Registration failed. Please try again.';
 
-                if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+                if (errorMessage.includes('already registered') || errorMessage.includes('duplicate')) {
                     errorMessage = 'An account with this email already exists. Please log in instead.';
                 }
 
@@ -179,6 +181,27 @@
         function validateEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
+        }
+
+        /**
+         * Show alert message
+         * @param {string} message - Alert message
+         * @param {string} type - Alert type ('error', 'success', 'warning')
+         */
+        function showAlert(message, type = 'error') {
+            const alertElement = document.getElementById('alert');
+            if (!alertElement) {
+                console.error('Alert element not found');
+                return;
+            }
+
+            alertElement.textContent = message;
+            alertElement.className = `alert alert-${type} show`;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 5000);
         }
     </script>
 </body>

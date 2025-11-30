@@ -100,6 +100,30 @@ Examples:
     </footer>
     </div>
 
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="console.js"></script>
+
+    <script>
+        // Auto-populate API key if user is logged in
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                // User is logged in, fetch their API key
+                const profile = await getUserProfile(user.id);
+                if (profile && profile.api_key) {
+                    document.getElementById('api-key').value = profile.api_key;
+                    console.log('API key auto-populated from Supabase profile');
+                }
+            } else {
+                // User not logged in, show login link
+                const helpText = document.querySelector('.help-text');
+                if (helpText) {
+                    helpText.innerHTML = 'Don\'t have an API key? <a href="register.html" style="color: var(--color-accent);">Sign up for free</a> or <a href="login.html" style="color: var(--color-accent);">log in</a>.';
+                }
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Missionize</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-logo">
+                <img src="images/missionize_logo_horizontal_white.png" alt="Missionize" style="filter: invert(1) brightness(0.2);">
+            </div>
+            <div class="dashboard-user">
+                <span class="user-email" id="user-email">Loading...</span>
+                <button class="btn btn-secondary" id="logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="dashboard-content">
+            <!-- Alert Message -->
+            <div id="alert" class="alert"></div>
+
+            <!-- Profile Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Account Information</h3>
+                    <p>Your Missionize profile</p>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <strong>Email</strong>
+                        <span id="profile-email">Loading...</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>Plan</strong>
+                        <span id="profile-plan">Loading...</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>Missions This Month</strong>
+                        <span id="profile-usage">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Key Section -->
+            <div class="card" style="margin-top: 2rem;">
+                <div class="card-header">
+                    <h3>API Key</h3>
+                    <p>Use this key to authenticate with the Missionize API</p>
+                </div>
+
+                <div class="code-display" id="api-key-display" style="margin-bottom: 1rem; font-family: monospace; background: var(--color-bg); padding: 1rem; border-radius: 8px; word-break: break-all;">
+                    Loading...
+                </div>
+
+                <button class="btn btn-primary" id="copy-api-key-btn">
+                    Copy API Key
+                </button>
+
+                <div style="margin-top: 1.5rem;">
+                    <a href="console.html" class="btn btn-secondary">
+                        Go to Console
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script>
+        let currentUser = null;
+        let userProfile = null;
+
+        // Initialize dashboard
+        (async () => {
+            // Check authentication
+            currentUser = await getCurrentUser();
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Load user profile
+            await loadUserProfile();
+
+            // Setup event listeners
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('copy-api-key-btn').addEventListener('click', handleCopyApiKey);
+        })();
+
+        async function loadUserProfile() {
+            try {
+                // Update email in header
+                document.getElementById('user-email').textContent = currentUser.email;
+                document.getElementById('profile-email').textContent = currentUser.email;
+
+                // Fetch profile from Supabase
+                userProfile = await getUserProfile(currentUser.id);
+
+                if (!userProfile) {
+                    showAlert('Profile not found. Please contact support.', 'error');
+                    return;
+                }
+
+                // Update UI with profile data
+                const planText = userProfile.plan ? userProfile.plan.charAt(0).toUpperCase() + userProfile.plan.slice(1) : 'Free';
+                document.getElementById('profile-plan').textContent = planText;
+
+                const usageText = `${userProfile.missions_used_this_month || 0} / ${userProfile.missions_limit || 'Unlimited'}`;
+                document.getElementById('profile-usage').textContent = usageText;
+
+                // Display API key
+                if (userProfile.api_key) {
+                    document.getElementById('api-key-display').textContent = userProfile.api_key;
+                } else {
+                    document.getElementById('api-key-display').textContent = 'No API key generated yet. Please contact support.';
+                    document.getElementById('copy-api-key-btn').disabled = true;
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showAlert('Failed to load profile: ' + error.message, 'error');
+            }
+        }
+
+        async function handleLogout() {
+            const { error } = await signOut();
+            if (error) {
+                showAlert('Logout failed: ' + error.message, 'error');
+                return;
+            }
+            window.location.href = 'login.html';
+        }
+
+        function handleCopyApiKey() {
+            const apiKey = document.getElementById('api-key-display').textContent;
+            navigator.clipboard.writeText(apiKey)
+                .then(() => {
+                    showAlert('API key copied to clipboard!', 'success');
+                })
+                .catch(err => {
+                    console.error('Failed to copy:', err);
+                    showAlert('Failed to copy to clipboard', 'error');
+                });
+        }
+
+        function showAlert(message, type = 'error') {
+            const alertElement = document.getElementById('alert');
+            if (!alertElement) {
+                console.error('Alert element not found');
+                return;
+            }
+
+            alertElement.textContent = message;
+            alertElement.className = `alert alert-${type} show`;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

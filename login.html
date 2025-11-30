@@ -69,10 +69,18 @@
         </div>
     </div>
 
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="js/auth.js"></script>
     <script>
         // Redirect to dashboard if already logged in
-        redirectIfAuthenticated();
+        (async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                window.location.href = 'dashboard.html';
+            }
+        })();
 
         // Handle login form submission
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -108,17 +116,12 @@
             loginBtn.textContent = 'Signing in...';
 
             try {
-                // Call login API
-                const response = await apiCall('/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
+                // Sign in with Supabase
+                const { data, error } = await signIn(email, password);
 
-                // Save JWT token
-                setToken(response.token);
+                if (error) {
+                    throw new Error(error.message);
+                }
 
                 // Show success message
                 showAlert('Login successful! Redirecting...', 'success');
@@ -146,6 +149,27 @@
         function validateEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
+        }
+
+        /**
+         * Show alert message
+         * @param {string} message - Alert message
+         * @param {string} type - Alert type ('error', 'success', 'warning')
+         */
+        function showAlert(message, type = 'error') {
+            const alertElement = document.getElementById('alert');
+            if (!alertElement) {
+                console.error('Alert element not found');
+                return;
+            }
+
+            alertElement.textContent = message;
+            alertElement.className = `alert alert-${type} show`;
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 5000);
         }
     </script>
 </body>
