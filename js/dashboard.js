@@ -134,12 +134,9 @@ async function handleRunMission() {
         return;
     }
 
-    // Check if user has saved API key in localStorage
-    const apiKey = localStorage.getItem('missionize_api_key');
-    if (!apiKey) {
-        showAlert('Please create an API key first in the API Keys tab', 'error');
-        return;
-    }
+    // Get JWT token for authentication
+    // Note: We no longer check for missionize_api_key - the backend will resolve it from JWT
+    const jwt = localStorage.getItem('missionize_jwt');
 
     // Parse input
     let missionPayload;
@@ -179,7 +176,7 @@ async function handleRunMission() {
         const response = await fetch(`${API_BASE_URL}/run-custom`, {
             method: 'POST',
             headers: {
-                'X-API-Key': apiKey,
+                'Authorization': `Bearer ${jwt}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(missionPayload),
@@ -195,7 +192,13 @@ async function handleRunMission() {
             showAlert('Mission completed successfully!', 'success');
         } else {
             displayError(response.status, data);
-            showAlert(`Mission failed: ${data.detail || data.error || 'Unknown error'}`, 'error');
+
+            // Special handling for "No API key found" error
+            if (response.status === 400 && data.detail && data.detail.includes('No API key found')) {
+                showAlert('No API key found. Please create an API key in the API Keys tab first.', 'error');
+            } else {
+                showAlert(`Mission failed: ${data.detail || data.error || 'Unknown error'}`, 'error');
+            }
         }
     } catch (error) {
         console.error('[DASHBOARD] ✗ Error:', error);
