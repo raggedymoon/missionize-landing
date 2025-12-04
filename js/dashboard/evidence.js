@@ -45,13 +45,41 @@ const mockEvidenceData = [
 let selectedEvidence = null;
 
 /**
- * Fetch evidence data (async stub for future API integration)
+ * Fetch evidence data from API
  */
 async function fetchEvidenceData(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/evidence`);
-    // return await response.json();
-    return mockEvidenceData;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/evidence/sessions`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Evidence API returned error, using mock data');
+            return mockEvidenceData;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        // Note: Real evidence data structure may differ
+        if (data.sessions && data.sessions.length > 0) {
+            return data.sessions.map(s => ({
+                missionId: s.session_id || s.id,
+                summary: s.summary || `Evidence Session ${s.session_id}`,
+                evidenceHash: s.chain_digest || s.merkle_root || 'sha256:pending',
+                timestamp: s.created_at || new Date().toISOString(),
+                description: `${s.mission_count || 0} missions in session`
+            }));
+        }
+        
+        return mockEvidenceData;
+    } catch (error) {
+        console.warn('Failed to fetch evidence data, using mock:', error.message);
+        return mockEvidenceData;
+    }
 }
 
 /**

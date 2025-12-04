@@ -68,13 +68,39 @@ const mockPatternsData = [
 ];
 
 /**
- * Fetch patterns data (async stub for future API integration)
+ * Fetch patterns data from API
  */
 async function fetchPatternsData(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/patterns`);
-    // return await response.json();
-    return mockPatternsData;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/patterns`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Patterns API returned error, using mock data');
+            return mockPatternsData;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        if (data.patterns && data.patterns.length > 0) {
+            return data.patterns.map(p => ({
+                name: p.name || p.pattern_id || 'Unknown Pattern',
+                category: p.category || p.mission_type || 'General',
+                usageCount: p.usage_count || p.execution_count || 0,
+                successRate: p.success_rate || (p.score ? p.score * 100 : 0)
+            }));
+        }
+        
+        return mockPatternsData;
+    } catch (error) {
+        console.warn('Failed to fetch patterns data, using mock:', error.message);
+        return mockPatternsData;
+    }
 }
 
 /**

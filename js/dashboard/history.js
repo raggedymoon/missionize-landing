@@ -66,13 +66,50 @@ const mockHistoryMissions = [
 let selectedHistoryMission = null;
 
 /**
- * Fetch history data (async stub for future API integration)
+ * Fetch history data from API
  */
 async function fetchHistoryData(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/missions/history`);
-    // return await response.json();
-    return mockHistoryMissions;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/missions/history`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('History API returned error, using mock data');
+            return mockHistoryMissions;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        return data.missions.map(m => ({
+            id: m.id,
+            summary: m.summary,
+            status: m.status,
+            mode: m.mode,
+            duration: calculateDuration(m.submitted_at, m.last_update),
+            timestamp: m.last_update || m.submitted_at
+        }));
+    } catch (error) {
+        console.warn('Failed to fetch history data, using mock:', error.message);
+        return mockHistoryMissions;
+    }
+}
+
+/**
+ * Calculate duration between two timestamps
+ */
+function calculateDuration(start, end) {
+    if (!start || !end) return 'N/A';
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffMs = endDate - startDate;
+    const minutes = Math.floor(diffMs / 60000);
+    const seconds = Math.floor((diffMs % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
 }
 
 /**

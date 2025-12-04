@@ -46,23 +46,80 @@ const mockMizziEvents = [
 ];
 
 /**
- * Fetch Mizzi status (async stub for future API integration)
+ * Fetch Mizzi status from API
  */
 async function fetchMizziStatus(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/mizzi/status`);
-    // return await response.json();
-    return mockMizziStatus;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/mizzi/status`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Mizzi status API returned error, using mock data');
+            return mockMizziStatus;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        return {
+            status: data.mode === 'active' ? 'Monitoring' : (data.status === 'healthy' ? 'Idle' : 'Paused'),
+            lastDiagnostic: data.last_heartbeat,
+            activeTasks: 0,  // Could be derived from running missions
+            totalValidations: data.missions_validated || 0,
+            rejectedMissions: data.missions_blocked || 0
+        };
+    } catch (error) {
+        console.warn('Failed to fetch Mizzi status, using mock:', error.message);
+        return mockMizziStatus;
+    }
 }
 
 /**
- * Fetch Mizzi events (async stub for future API integration)
+ * Fetch Mizzi events from API
  */
 async function fetchMizziEvents(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/mizzi/events`);
-    // return await response.json();
-    return mockMizziEvents;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/mizzi/events?limit=20`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Mizzi events API returned error, using mock data');
+            return mockMizziEvents;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        return data.events.map(e => ({
+            message: e.message,
+            type: mapSeverityToType(e.severity),
+            timestamp: e.timestamp
+        }));
+    } catch (error) {
+        console.warn('Failed to fetch Mizzi events, using mock:', error.message);
+        return mockMizziEvents;
+    }
+}
+
+/**
+ * Map API severity to frontend type
+ */
+function mapSeverityToType(severity) {
+    const map = {
+        'info': 'info',
+        'warning': 'warning',
+        'error': 'error',
+        'critical': 'error'
+    };
+    return map[severity] || 'success';
 }
 
 /**

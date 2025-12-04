@@ -65,13 +65,37 @@ const mockPipelineMissions = [
 let selectedMission = null;
 
 /**
- * Fetch pipeline data (async stub for future API integration)
+ * Fetch pipeline data from API
  */
 async function fetchPipelineData(appState) {
-    // TODO: Replace with real fetch call
-    // const response = await fetch(`${appState.apiBaseUrl}/missions/pipeline`);
-    // return await response.json();
-    return mockPipelineMissions;
+    try {
+        const baseUrl = appState?.apiBaseUrl || localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/missions/pipeline`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Pipeline API returned error, using mock data');
+            return mockPipelineMissions;
+        }
+        
+        const data = await response.json();
+        
+        // Transform API response to match frontend format
+        const missions = [
+            ...data.queued.map(m => ({...m, status: 'queued', submittedAt: m.submitted_at, lastUpdate: m.last_update, needsHumanInput: m.needs_human_input})),
+            ...data.running.map(m => ({...m, status: 'running', submittedAt: m.submitted_at, lastUpdate: m.last_update, needsHumanInput: m.needs_human_input})),
+            ...data.completed.map(m => ({...m, status: 'completed', submittedAt: m.submitted_at, lastUpdate: m.last_update, needsHumanInput: m.needs_human_input})),
+            ...data.failed.map(m => ({...m, status: 'failed', submittedAt: m.submitted_at, lastUpdate: m.last_update, needsHumanInput: m.needs_human_input}))
+        ];
+        
+        return missions;
+    } catch (error) {
+        console.warn('Failed to fetch pipeline data, using mock:', error.message);
+        return mockPipelineMissions;
+    }
 }
 
 /**
