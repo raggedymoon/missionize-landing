@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Missionize Deep Debugger</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', monospace; background: #0d1117; color: #c9d1d9; padding: 20px; margin: 0; }
+        h1 { color: #58a6ff; margin-bottom: 10px; }
+        .subtitle { color: #8b949e; margin-bottom: 20px; }
+        .section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .section h2 { color: #58a6ff; margin: 0 0 10px 0; font-size: 16px; }
+        .pass { color: #3fb950; }
+        .fail { color: #f85149; }
+        .warn { color: #d29922; }
+        .info { color: #58a6ff; }
+        pre { background: #0d1117; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+        button { background: #238636; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 5px; }
+        button:hover { background: #2ea043; }
+        button.secondary { background: #30363d; }
+        button.secondary:hover { background: #484f58; }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid #21262d; }
+        .log-entry:last-child { border-bottom: none; }
+        .timestamp { color: #8b949e; font-size: 11px; }
+        #live-log { max-height: 400px; overflow-y: auto; }
+        .test-chat { margin-top: 20px; }
+        .test-chat input { width: 70%; padding: 10px; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; border-radius: 4px; }
+        .test-chat button { width: 25%; }
+        .response-box { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 15px; margin-top: 10px; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Missionize Deep Debugger</h1>
+    <p class="subtitle">Comprehensive diagnostic tool for the dashboard chat system</p>
+    
+    <div style="margin-bottom: 20px;">
+        <button onclick="runFullDiagnostic()">🚀 Run Full Diagnostic</button>
+        <button onclick="testLiveChat()" class="secondary">💬 Test Live Chat</button>
+        <button onclick="clearLogs()" class="secondary">🗑️ Clear Logs</button>
+        <button onclick="clearLocalStorage()" class="secondary">🧹 Clear LocalStorage</button>
+    </div>
+
+    <div class="section">
+        <h2>📋 Live Debug Log</h2>
+        <div id="live-log"></div>
+    </div>
+
+    <div class="section">
+        <h2>💬 Interactive Chat Test</h2>
+        <div class="test-chat">
+            <input type="text" id="test-message" placeholder="Type a test message..." value="Say hello in exactly 5 words">
+            <button onclick="sendTestMessage()">Send</button>
+        </div>
+        <div class="response-box" id="chat-response">Response will appear here...</div>
+    </div>
+
+    <div class="section">
+        <h2>📊 System Status</h2>
+        <div id="system-status">Click "Run Full Diagnostic" to check system status</div>
+    </div>
+
+    <script type="module">
+        const API_BASE = 'https://api.missionize.ai';
+        const logContainer = document.getElementById('live-log');
+        const statusContainer = document.getElementById('system-status');
+        const responseBox = document.getElementById('chat-response');
+        
+        // Make functions globally available
+        window.runFullDiagnostic = runFullDiagnostic;
+        window.testLiveChat = testLiveChat;
+        window.clearLogs = clearLogs;
+        window.clearLocalStorage = clearLocalStorage;
+        window.sendTestMessage = sendTestMessage;
+
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const typeClass = type;
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="timestamp">[${time}]</span> <span class="${typeClass}">${message}</span>`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('missionize_conversations');
+            localStorage.removeItem('missionize_selected_model');
+            log('LocalStorage cleared - refresh dashboard to see effect', 'warn');
+        }
+
+        async function runFullDiagnostic() {
+            log('=== STARTING FULL DIAGNOSTIC ===', 'info');
+            let results = [];
+
+            // Test 1: Health endpoint
+            log('Testing /health endpoint...', 'info');
+            try {
+                const health = await fetch(`${API_BASE}/health`);
+                const healthData = await health.json();
+                if (health.ok && healthData.status === 'ok') {
+                    log('✅ Health check PASSED', 'pass');
+                    results.push({ test: 'Health', status: 'pass' });
+                } else {
+                    log('❌ Health check returned non-ok status', 'fail');
+                    results.push({ test: 'Health', status: 'fail', error: healthData });
+                }
+            } catch (e) {
+                log(`❌ Health check FAILED: ${e.message}`, 'fail');
+                results.push({ test: 'Health', status: 'fail', error: e.message });
+            }
+
+            // Test 2: Models endpoint
+            log('Testing /api/chat/models endpoint...', 'info');
+            try {
+                const models = await fetch(`${API_BASE}/api/chat/models`);
+                const modelsData = await models.json();
+                const available = modelsData.models?.filter(m => m.available) || [];
+                if (available.length > 0) {
+                    log(`✅ Models PASSED - ${available.length} models available: ${available.map(m => m.id).join(', ')}`, 'pass');
+                    results.push({ test: 'Models', status: 'pass', count: available.length });
+                } else {
+                    log('⚠️ Models endpoint works but no models available (check API keys)', 'warn');
+                    results.push({ test: 'Models', status: 'warn', data: modelsData });
+                }
+            } catch (e) {
+                log(`❌ Models FAILED: ${e.message}`, 'fail');
+                results.push({ test: 'Models', status: 'fail', error: e.message });
+            }
+
+            // Test 3: Chat Send endpoint
+            log('Testing /api/chat/send endpoint...', 'info');
+            let messageId = null;
+            try {
+                const sendRes = await fetch(`${API_BASE}/api/chat/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [{ role: 'user', content: 'Test' }],
+                        model_id: 'gpt-4o-mini',
+                        conversation_id: 'debug-' + Date.now()
+                    })
+                });
+                const sendData = await sendRes.json();
+                if (sendData.ok && sendData.message_id) {
+                    messageId = sendData.message_id;
+                    log(`✅ Chat Send PASSED - message_id: ${messageId}`, 'pass');
+                    results.push({ test: 'ChatSend', status: 'pass', messageId });
+                } else {
+                    log(`❌ Chat Send returned unexpected response`, 'fail');
+                    log(`Response: ${JSON.stringify(sendData)}`, 'info');
+                    results.push({ test: 'ChatSend', status: 'fail', data: sendData });
+                }
+            } catch (e) {
+                log(`❌ Chat Send FAILED: ${e.message}`, 'fail');
+                results.push({ test: 'ChatSend', status: 'fail', error: e.message });
+            }
+
+            // Test 4: SSE Stream
+            if (messageId) {
+                log('Testing SSE stream...', 'info');
+                await new Promise((resolve) => {
+                    const streamUrl = `${API_BASE}/api/chat/stream?message_id=${messageId}`;
+                    log(`Connecting to: ${streamUrl}`, 'info');
+                    
+                    const es = new EventSource(streamUrl);
+                    let chunks = [];
+                    let gotFinal = false;
+                    
+                    const timeout = setTimeout(() => {
+                        es.close();
+                        if (!gotFinal) {
+                            log(`⚠️ SSE timed out after 15s - got ${chunks.length} chunks`, 'warn');
+                            results.push({ test: 'SSE', status: 'warn', chunks: chunks.length });
+                        }
+                        resolve();
+                    }, 15000);
+
+                    es.addEventListener('chunk', (e) => {
+                        chunks.push(e.data);
+                        log(`📦 SSE chunk: ${e.data}`, 'info');
+                    });
+
+                    es.addEventListener('status', (e) => {
+                        log(`📊 SSE status: ${e.data}`, 'info');
+                    });
+
+                    es.addEventListener('final', (e) => {
+                        clearTimeout(timeout);
+                        gotFinal = true;
+                        log(`✅ SSE PASSED - received ${chunks.length} chunks + final event`, 'pass');
+                        log(`Final: ${e.data}`, 'info');
+                        results.push({ test: 'SSE', status: 'pass', chunks: chunks.length });
+                        es.close();
+                        resolve();
+                    });
+
+                    es.addEventListener('error', (e) => {
+                        if (e.data) {
+                            log(`❌ SSE error event: ${e.data}`, 'fail');
+                        }
+                    });
+
+                    es.onerror = (e) => {
+                        clearTimeout(timeout);
+                        if (!gotFinal && chunks.length === 0) {
+                            log(`❌ SSE connection error - readyState: ${es.readyState}`, 'fail');
+                            results.push({ test: 'SSE', status: 'fail', readyState: es.readyState });
+                        }
+                        es.close();
+                        resolve();
+                    };
+                });
+            }
+
+            // Test 5: Module imports
+            log('Testing module imports...', 'info');
+            try {
+                const apiModule = await import('./js/dashboard/api.js');
+                const exports = Object.keys(apiModule);
+                if (exports.includes('createChatStream') && exports.includes('postJson')) {
+                    log(`✅ API module PASSED - exports: ${exports.join(', ')}`, 'pass');
+                    results.push({ test: 'APIModule', status: 'pass', exports });
+                } else {
+                    log(`⚠️ API module missing expected exports`, 'warn');
+                    results.push({ test: 'APIModule', status: 'warn', exports });
+                }
+            } catch (e) {
+                log(`❌ API module FAILED: ${e.message}`, 'fail');
+                results.push({ test: 'APIModule', status: 'fail', error: e.message });
+            }
+
+            try {
+                const chatModule = await import('./js/dashboard/chat.js');
+                const exports = Object.keys(chatModule);
+                log(`✅ Chat module PASSED - exports: ${exports.join(', ')}`, 'pass');
+                results.push({ test: 'ChatModule', status: 'pass', exports });
+            } catch (e) {
+                log(`❌ Chat module FAILED: ${e.message}`, 'fail');
+                results.push({ test: 'ChatModule', status: 'fail', error: e.message });
+            }
+
+            // Test 6: LocalStorage state
+            log('Checking LocalStorage...', 'info');
+            const convs = localStorage.getItem('missionize_conversations');
+            if (convs) {
+                try {
+                    const parsed = JSON.parse(convs);
+                    const stuckMessages = [];
+                    parsed.forEach(conv => {
+                        conv.messages?.forEach(msg => {
+                            if (msg.content?.includes('⏳') || msg.content?.includes('Sending to Missionize')) {
+                                stuckMessages.push(msg.content.substring(0, 50));
+                            }
+                        });
+                    });
+                    if (stuckMessages.length > 0) {
+                        log(`⚠️ Found ${stuckMessages.length} stuck messages in localStorage - click "Clear LocalStorage" to fix`, 'warn');
+                        results.push({ test: 'LocalStorage', status: 'warn', stuckMessages: stuckMessages.length });
+                    } else {
+                        log(`✅ LocalStorage OK - ${parsed.length} conversations`, 'pass');
+                        results.push({ test: 'LocalStorage', status: 'pass', conversations: parsed.length });
+                    }
+                } catch (e) {
+                    log(`⚠️ LocalStorage corrupted: ${e.message}`, 'warn');
+                    results.push({ test: 'LocalStorage', status: 'warn', error: e.message });
+                }
+            } else {
+                log('ℹ️ LocalStorage empty (no conversations)', 'info');
+                results.push({ test: 'LocalStorage', status: 'pass', empty: true });
+            }
+
+            // Summary
+            log('=== DIAGNOSTIC COMPLETE ===', 'info');
+            const passed = results.filter(r => r.status === 'pass').length;
+            const failed = results.filter(r => r.status === 'fail').length;
+            const warned = results.filter(r => r.status === 'warn').length;
+            
+            statusContainer.innerHTML = `
+                <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                    <div class="pass">✅ Passed: ${passed}</div>
+                    <div class="fail">❌ Failed: ${failed}</div>
+                    <div class="warn">⚠️ Warnings: ${warned}</div>
+                </div>
+                <pre>${JSON.stringify(results, null, 2)}</pre>
+            `;
+
+            if (failed === 0 && warned === 0) {
+                log('🎉 ALL TESTS PASSED! The backend is working correctly.', 'pass');
+                log('If the dashboard chat still doesn\'t work, try: 1) Clear LocalStorage, 2) Hard refresh (Ctrl+Shift+R)', 'info');
+            } else if (failed > 0) {
+                log('🚨 Some tests FAILED - check the details above', 'fail');
+            }
+        }
+
+        async function sendTestMessage() {
+            const message = document.getElementById('test-message').value;
+            if (!message) return;
+
+            responseBox.innerHTML = '<span class="info">Sending...</span>';
+            log(`Sending test message: "${message}"`, 'info');
+
+            try {
+                // Step 1: Send
+                log('Step 1: POST /api/chat/send', 'info');
+                const sendRes = await fetch(`${API_BASE}/api/chat/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [{ role: 'user', content: message }],
+                        model_id: 'gpt-4o-mini',
+                        conversation_id: 'interactive-' + Date.now()
+                    })
+                });
+                const sendData = await sendRes.json();
+                log(`Response: ${JSON.stringify(sendData)}`, 'info');
+
+                if (!sendData.message_id) {
+                    throw new Error('No message_id in response');
+                }
+
+                // Step 2: Stream
+                log(`Step 2: SSE stream for ${sendData.message_id}`, 'info');
+                responseBox.innerHTML = '<span class="info">Streaming...</span>';
+                
+                let fullResponse = '';
+                await new Promise((resolve, reject) => {
+                    const es = new EventSource(`${API_BASE}/api/chat/stream?message_id=${sendData.message_id}`);
+                    
+                    const timeout = setTimeout(() => {
+                        es.close();
+                        reject(new Error('Stream timeout'));
+                    }, 30000);
+
+                    es.addEventListener('chunk', (e) => {
+                        const data = JSON.parse(e.data);
+                        const text = data.text || data.content || '';
+                        fullResponse += text;
+                        responseBox.innerHTML = `<span class="pass">${fullResponse}</span>`;
+                        log(`Chunk: "${text}"`, 'info');
+                    });
+
+                    es.addEventListener('final', (e) => {
+                        clearTimeout(timeout);
+                        log('Stream complete!', 'pass');
+                        es.close();
+                        resolve();
+                    });
+
+                    es.onerror = (e) => {
+                        clearTimeout(timeout);
+                        es.close();
+                        if (fullResponse) {
+                            resolve();
+                        } else {
+                            reject(new Error('Stream connection failed'));
+                        }
+                    };
+                });
+
+                log(`✅ Full response: "${fullResponse}"`, 'pass');
+                responseBox.innerHTML = `<div class="pass" style="font-size: 16px;">${fullResponse}</div>`;
+
+            } catch (e) {
+                log(`❌ Test failed: ${e.message}`, 'fail');
+                responseBox.innerHTML = `<span class="fail">Error: ${e.message}</span>`;
+            }
+        }
+
+        function testLiveChat() {
+            log('Opening dashboard in new tab to test live chat...', 'info');
+            window.open('dashboard.html', '_blank');
+        }
+
+        // Auto-run on load
+        log('Debug tool loaded. Click "Run Full Diagnostic" to start.', 'info');
+    </script>
+</body>
+</html>

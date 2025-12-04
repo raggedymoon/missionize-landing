@@ -516,12 +516,15 @@ async function sendToBackend(message, appState) {
 
     try {
         // Build messages array from conversation history
+        // Filter out placeholder messages (starting with ⏳) and empty content
         const messages = currentConversation.messages
-            .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+            .filter(msg => (msg.role === 'user' || msg.role === 'assistant') && msg.content && !msg.content.startsWith('⏳'))
             .map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
+        
+        console.log('[Chat] Sending messages:', messages);
 
         // Build request payload
         const payload = {
@@ -531,10 +534,13 @@ async function sendToBackend(message, appState) {
         };
 
         // Call new backend API endpoint
+        console.log('[Chat] Calling /api/chat/send with payload:', payload);
         const response = await postJson('/api/chat/send', payload, appState);
+        console.log('[Chat] Got response:', response);
 
         // Check if streaming is available
         if (response.stream_url || response.message_id) {
+            console.log('[Chat] Starting SSE stream for message_id:', response.message_id);
             // Use SSE streaming
             const messageId = response.message_id;
             await handleStreamingResponse(messageId, aiMessage, appState, container);
@@ -566,13 +572,17 @@ async function sendToBackend(message, appState) {
 async function handleStreamingResponse(messageId, aiMessage, appState, container) {
     return new Promise((resolve, reject) => {
         try {
+            console.log('[SSE] Creating EventSource for message_id:', messageId);
             const eventSource = createChatStream(messageId, appState);
+            console.log('[SSE] EventSource created, URL:', eventSource.url);
             let accumulatedContent = '';
 
             eventSource.addEventListener('chunk', (event) => {
+                console.log('[SSE] Got chunk event:', event.data);
                 const data = JSON.parse(event.data);
                 if (data.text || data.content) {
                     accumulatedContent += (data.text || data.content);
+                    console.log('[SSE] Accumulated content:', accumulatedContent);
                     aiMessage.content = accumulatedContent;
                     saveConversations();
 
