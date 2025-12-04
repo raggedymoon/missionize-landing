@@ -231,6 +231,25 @@ header h1 {
     font-size: 0.9rem;
 }
 
+/* Progress Bar */
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    margin-top: 1rem;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #2dd4bf 0%, #14b8a6 100%);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
 /* Output Display */
 .output-empty {
     padding: 3rem;

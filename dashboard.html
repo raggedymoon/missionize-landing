@@ -3,217 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Missionize</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <title>Missionize Dashboard</title>
     <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Header -->
-        <div class="dashboard-header">
-            <div class="dashboard-logo">
-                <img src="images/missionize_logo_horizontal_white.png" alt="Missionize" style="filter: invert(1) brightness(0.2);">
+    <div class="dashboard-wrapper">
+        <!-- Left Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">Missionize</h1>
             </div>
-            <div class="dashboard-user">
-                <span class="user-email" id="user-email">Loading...</span>
-                <button class="btn btn-secondary" id="logout-btn">Logout</button>
-            </div>
-        </div>
+            <nav class="sidebar-nav">
+                <button class="nav-tab active" data-view="pipeline">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">Mission Pipeline</span>
+                </button>
+                <button class="nav-tab" data-view="history">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">Mission History</span>
+                </button>
+                <button class="nav-tab" data-view="evidence">
+                    <span class="nav-icon">🔍</span>
+                    <span class="nav-label">Evidence</span>
+                </button>
+                <button class="nav-tab" data-view="patterns">
+                    <span class="nav-icon">🧩</span>
+                    <span class="nav-label">Patterns</span>
+                </button>
+                <button class="nav-tab" data-view="mizzi">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-label">Mizzi</span>
+                </button>
+                <button class="nav-tab" data-view="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
+        </aside>
 
-        <!-- Navigation Tabs -->
-        <div class="dashboard-nav">
-            <ul class="nav-tabs">
-                <li class="nav-tab active" data-tab="console">Console</li>
-                <li class="nav-tab" data-tab="api-keys">API Keys</li>
-                <li class="nav-tab" data-tab="profile">Profile</li>
-            </ul>
-        </div>
-
-        <!-- Main Content -->
-        <div class="dashboard-content">
-            <!-- Alert Message -->
-            <div id="alert" class="alert"></div>
-
-            <!-- Console Tab -->
-            <div id="console-tab" class="tab-content active">
-                <div class="console-section">
-                    <!-- Console Input -->
-                    <div class="console-input-area">
-                        <div class="card-header">
-                            <h3>Run Mission</h3>
-                            <p>Enter your task or paste a JSON payload</p>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label" for="mission-input">Task or JSON Payload</label>
-                            <textarea
-                                id="mission-input"
-                                class="form-textarea"
-                                placeholder='What is 2+2?
-
-Or paste JSON like:
-{
-  "task": "Analyze go-to-market strategy",
-  "context": {...},
-  "require_consensus": true
-}'></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <button class="btn btn-primary" id="run-mission-btn">
-                                <span class="button-text">Run Mission</span>
-                                <span class="spinner" style="display: none;"></span>
-                            </button>
-                        </div>
-
-                        <!-- Loading State -->
-                        <div id="loading-message" style="display: none; color: var(--color-text-muted); margin-top: 1rem;">
-                            ⏳ <strong>Processing...</strong> (0s)
-                        </div>
-
-                        <!-- Progress Bar -->
-                        <div id="progress-bar-container" class="progress-bar" style="display: none;">
-                            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
-                        </div>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header Bar -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="page-title">Mission Pipeline</h2>
+                </div>
+                <div class="header-right">
+                    <div class="environment-indicator">
+                        <span class="env-label">Environment:</span>
+                        <span class="env-value">Prod</span>
                     </div>
-
-                    <!-- Console Output -->
-                    <div class="console-output-area">
-                        <div class="card-header">
-                            <h3>Response</h3>
-                            <p>Mission results will appear here</p>
-                        </div>
-
-                        <!-- Empty State -->
-                        <div id="output-empty-state" class="console-empty-state">
-                            <div class="console-empty-state-icon">🚀</div>
-                            <p>No missions run yet</p>
-                            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Enter a task above and click "Run Mission" to get started</p>
-                        </div>
-
-                        <!-- Summary Response -->
-                        <div id="response-summary" style="display: none;">
-                            <div id="summary-content"></div>
-                        </div>
-
-                        <!-- Raw JSON Response -->
-                        <div id="response-raw" style="display: none; margin-top: 1rem;">
-                            <details>
-                                <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem;">Raw JSON Response</summary>
-                                <pre><code id="raw-json-content"></code></pre>
-                            </details>
-                        </div>
+                    <div class="mode-indicator">
+                        <span class="mode-label">Mode:</span>
+                        <span class="mode-value">Standard</span>
+                    </div>
+                    <div class="status-indicator">
+                        <span class="status-dot connected"></span>
+                        <span class="status-label">API Connected</span>
                     </div>
                 </div>
+            </header>
+
+            <!-- Content Container -->
+            <div class="content-container" id="main-view">
+                <!-- Dynamic content will be rendered here -->
             </div>
-
-            <!-- API Keys Tab -->
-            <div id="api-keys-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>API Keys</h3>
-                        <p>Manage your API keys for authentication</p>
-                    </div>
-
-                    <!-- API Keys List -->
-                    <div class="api-keys-list" id="api-keys-list" style="display: none;">
-                        <!-- Populated by JavaScript -->
-                    </div>
-
-                    <!-- Empty State -->
-                    <div class="empty-state" id="empty-state">
-                        <div class="empty-state-icon">🔑</div>
-                        <p>No API keys yet</p>
-                        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Create your first API key to get started</p>
-                    </div>
-
-                    <!-- Create Key Button -->
-                    <button class="btn btn-primary" id="create-key-btn" style="margin-top: 1.5rem;">
-                        Create New API Key
-                    </button>
-                </div>
-            </div>
-
-            <!-- Profile Tab -->
-            <div id="profile-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Profile</h3>
-                        <p>Your account information</p>
-                    </div>
-
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <strong>Email</strong>
-                            <span id="profile-email">Loading...</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Plan</strong>
-                            <span id="profile-plan">Loading...</span>
-                        </div>
-                        <div class="summary-item">
-                            <strong>Member Since</strong>
-                            <span id="profile-created">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Create Key Modal -->
-    <div class="modal" id="create-key-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Create New API Key</h3>
-            </div>
-
-            <div class="form-group">
-                <label for="key-name-input" class="form-label">Key Name</label>
-                <input
-                    type="text"
-                    id="key-name-input"
-                    class="form-input"
-                    placeholder="e.g., Production Key, Development Key"
-                    maxlength="100"
-                >
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="cancel-create-key">Cancel</button>
-                <button class="btn btn-primary" id="confirm-create-key">Create Key</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- New Key Modal (shows full key one time only) -->
-    <div class="modal" id="new-key-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>API Key Created</h3>
-            </div>
-
-            <p style="color: var(--color-text-muted); margin-bottom: 1rem;">
-                Save this API key securely. You won't be able to see it again!
-            </p>
-
-            <div class="code-display" id="new-key-display">
-                mz_live_...
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="copy-key-btn">Copy to Clipboard</button>
-                <button class="btn btn-primary" id="close-new-key-modal">I've Saved It</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="js/dashboard.js"></script>
+    <!-- Scripts -->
+    <script type="module" src="js/dashboard/pipeline.js"></script>
+    <script type="module" src="js/dashboard/history.js"></script>
+    <script type="module" src="js/dashboard/evidence.js"></script>
+    <script type="module" src="js/dashboard/patterns.js"></script>
+    <script type="module" src="js/dashboard/mizzi.js"></script>
+    <script type="module" src="js/dashboard/settings.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
