@@ -599,21 +599,56 @@ async function handleStreamingResponse(messageId, aiMessage, appState, container
                 resolve();
             });
 
+            // Listen for backend error events (from the SSE stream)
             eventSource.addEventListener('error', (event) => {
-                console.error('SSE error:', event);
+                // Check if this is a data event with error info from backend
+                if (event.data) {
+                    try {
+                        const errorData = JSON.parse(event.data);
+                        console.error('SSE backend error:', errorData);
+                        aiMessage.content = `**Error from backend:** ${errorData.error || 'Unknown error'}\n\nError code: ${errorData.error_code || 'UNKNOWN'}`;
+                        aiMessage.mizziStatus = 'error';
+                    } catch (e) {
+                        // Not JSON, treat as connection error
+                        console.error('SSE error (raw):', event);
+                        if (accumulatedContent) {
+                            aiMessage.content = accumulatedContent;
+                            aiMessage.mizziStatus = 'completed';
+                        } else {
+                            aiMessage.content = '**Streaming error.** Connection lost.';
+                            aiMessage.mizziStatus = 'error';
+                        }
+                    }
+                } else {
+                    // Connection error (no data)
+                    console.error('SSE connection error:', event);
+                    if (accumulatedContent) {
+                        aiMessage.content = accumulatedContent;
+                        aiMessage.mizziStatus = 'completed';
+                    } else {
+                        aiMessage.content = '**Streaming error.** Connection lost. Check browser console for details.';
+                        aiMessage.mizziStatus = 'error';
+                    }
+                }
+                
                 eventSource.close();
-
-                // Use accumulated content if we have any, otherwise show error
+                resolve();
+            });
+            
+            // Also handle onerror for connection-level errors
+            eventSource.onerror = (event) => {
+                console.error('SSE onerror:', event, 'readyState:', eventSource.readyState);
+                eventSource.close();
+                
                 if (accumulatedContent) {
                     aiMessage.content = accumulatedContent;
                     aiMessage.mizziStatus = 'completed';
                 } else {
-                    aiMessage.content = '**Streaming error.** Connection lost.';
+                    aiMessage.content = '**Connection error.** Could not connect to streaming endpoint.';
                     aiMessage.mizziStatus = 'error';
                 }
-
                 resolve();
-            });
+            };
 
         } catch (error) {
             console.error('Failed to create stream:', error);
