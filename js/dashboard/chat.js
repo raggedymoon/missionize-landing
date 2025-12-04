@@ -571,8 +571,8 @@ async function handleStreamingResponse(messageId, aiMessage, appState, container
 
             eventSource.addEventListener('chunk', (event) => {
                 const data = JSON.parse(event.data);
-                if (data.content) {
-                    accumulatedContent += data.content;
+                if (data.text || data.content) {
+                    accumulatedContent += (data.text || data.content);
                     aiMessage.content = accumulatedContent;
                     saveConversations();
 
