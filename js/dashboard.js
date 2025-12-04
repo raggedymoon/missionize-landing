@@ -3,6 +3,7 @@
  * Handles view routing and app state management
  */
 
+import { render as renderChat } from './dashboard/chat.js';
 import { render as renderPipeline } from './dashboard/pipeline.js';
 import { render as renderHistory } from './dashboard/history.js';
 import { render as renderEvidence } from './dashboard/evidence.js';
@@ -13,12 +14,13 @@ import { render as renderSettings } from './dashboard/settings.js';
 // Application state
 const appState = {
     apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai',
-    currentView: 'pipeline',
+    currentView: 'chat',
     selectedMissionId: null
 };
 
 // View registry
 const views = {
+    chat: renderChat,
     pipeline: renderPipeline,
     history: renderHistory,
     evidence: renderEvidence,
@@ -51,8 +53,8 @@ function initDashboard() {
     // Setup event listeners
     setupNavigation();
 
-    // Load initial view (pipeline by default)
-    switchView('pipeline');
+    // Load initial view (chat by default)
+    switchView('chat');
 }
 
 /**
@@ -65,6 +67,14 @@ function setupNavigation() {
             switchView(viewName);
         });
     });
+
+    // Setup console navigation (separate page)
+    const consoleNav = document.getElementById('console-nav');
+    if (consoleNav) {
+        consoleNav.addEventListener('click', () => {
+            window.location.href = 'console.html';
+        });
+    }
 }
 
 /**
@@ -91,6 +101,7 @@ function switchView(viewName) {
 
     // Update page title
     const titles = {
+        chat: 'Chat',
         pipeline: 'Mission Pipeline',
         history: 'Mission History',
         evidence: 'Evidence',
@@ -131,3 +142,21 @@ export function updateAppState(updates, refresh = false) {
 export function getAppState() {
     return { ...appState };
 }
+
+/**
+ * Switch to pipeline view and highlight specific mission
+ * @param {string} missionId - Mission ID to highlight
+ */
+window.switchViewToMission = function(missionId) {
+    appState.selectedMissionId = missionId;
+    switchView('pipeline');
+};
+
+/**
+ * Switch to evidence view and select specific mission
+ * @param {string} missionId - Mission ID to show evidence for
+ */
+window.switchViewToEvidence = function(missionId) {
+    appState.selectedMissionId = missionId;
+    switchView('evidence');
+};

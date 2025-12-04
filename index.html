@@ -49,6 +49,8 @@
         .hero p { font-size: 1.25rem; color: var(--color-text-muted); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; }
         .hero-cta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
         .hero-note { margin-top: 1.5rem; font-size: 0.9rem; color: var(--color-text-muted); }
+        .patent-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(45, 212, 191, 0.1); border: 1px solid var(--color-accent); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--color-accent); margin-bottom: 1.5rem; }
+        .patent-badge::before { content: '✅'; }
         section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
         .section-header { text-align: center; margin-bottom: 4rem; }
         .section-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
@@ -119,6 +121,7 @@
 
     <section class="hero">
         <div class="hero-content">
+            <div class="patent-badge">Patent Pending (USPTO #63/930,913)</div>
             <h1>The <span class="gradient-text">Black Box</span> for AI Agents</h1>
             <p>Ship safer AI automations in hours, not months. Multi-agent review, cryptographic audit trails, and deterministic replay â€” all behind a simple API.</p>
             <div class="hero-cta">
@@ -323,7 +326,7 @@
         <div class="footer-content">
             <img src="images/missionize_logo_horizontal_white.png" alt="Missionize" class="footer-logo">
             <p>Built by Adrian Bailey Â· Commissionze Inc Â· Concord, NC</p>
-            <p style="margin-top: 0.5rem; font-size: 0.85rem;">Â© 2025 Commissionze Inc. All rights reserved. Patent Pending.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.85rem;">© 2025 Commissionze Inc. All rights reserved. Patent Pending (USPTO #63/930,913).</p>
         </div>
     </footer>
 </body>
