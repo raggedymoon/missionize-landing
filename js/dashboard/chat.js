@@ -3,7 +3,7 @@
  * Primary interface for interacting with Missionize AI
  */
 
-import { postJson, getJson, getApiBaseUrl, createChatStream } from './api.js';
+import { postJson, getJson, getApiBaseUrl, createChatStream, runMission } from './api.js';
 
 // State management
 let currentConversation = null;
@@ -12,6 +12,8 @@ let attachedFiles = [];
 let isStreaming = false;
 let selectedModel = 'gpt-4o-mini';
 let currentAppState = null;
+let chatMode = 'fast'; // 'fast' or 'mission'
+let currentBuildTraceData = null;
 
 // Available models (will be populated from backend)
 let MODELS = [
@@ -19,6 +21,45 @@ let MODELS = [
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
     { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
     { id: 'claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'Anthropic' }
+];
+
+// Demo scenarios for easy testing
+const DEMO_SCENARIOS = [
+    {
+        id: '1',
+        label: 'Missionize vs Competitors (LangChain, AutoGen, CrewAI, LangSmith)',
+        prompt: 'Explain Missionize vs LangChain, AutoGen, CrewAI, LangSmith – focus on proof and auditability.'
+    },
+    {
+        id: '2',
+        label: 'Executive One-Pager for CISO',
+        prompt: 'Generate an executive one-pager for a CISO evaluating Missionize for their AI governance.'
+    },
+    {
+        id: '3',
+        label: 'EU AI Act Article 19 Compliance',
+        prompt: 'Design an EU AI Act Article 19 compliance implementation using Missionize evidence envelopes.'
+    },
+    {
+        id: '4',
+        label: 'Debug Hallucinating AI Workflow',
+        prompt: 'Debug a failing AI workflow: agent keeps hallucinating. Propose a safer pattern with consensus validation.'
+    },
+    {
+        id: '5',
+        label: 'VC-Ready Talking Points (Patent Moat)',
+        prompt: 'Create 5 VC-ready talking points emphasizing our patent moat ($1.5B-$2.5B portfolio) and trust graph.'
+    },
+    {
+        id: '6',
+        label: 'Technical Blog Post: Proof Beats Observability',
+        prompt: 'Write a technical blog post about why "proof beats observability" for enterprise AI.'
+    },
+    {
+        id: '7',
+        label: 'Competitive Battlecard vs LangChain',
+        prompt: 'Generate a competitive battlecard for sales team facing LangChain in a deal.'
+    }
 ];
 
 /**
@@ -39,6 +80,12 @@ async function initChat() {
     const storedModel = localStorage.getItem('missionize_selected_model');
     if (storedModel) {
         selectedModel = storedModel;
+    }
+
+    // Load chat mode
+    const storedMode = localStorage.getItem('missionize_chat_mode');
+    if (storedMode === 'mission' || storedMode === 'fast') {
+        chatMode = storedMode;
     }
 
     // Fetch available models from backend
@@ -105,8 +152,21 @@ export async function render(container, appState) {
 
     container.innerHTML = `
         <div class="chat-view">
-            <!-- Model Selector Bar -->
+            <!-- Chat Header with Mode Toggle -->
             <div class="chat-header">
+                <div class="mode-toggle-container">
+                    <div class="mode-toggle">
+                        <button class="mode-option ${chatMode === 'fast' ? 'active' : ''}" data-mode="fast">
+                            ⚡ Fast
+                        </button>
+                        <button class="mode-option ${chatMode === 'mission' ? 'active' : ''}" data-mode="mission">
+                            🔒 Mission Mode
+                        </button>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--color-text-muted);">
+                        ${chatMode === 'fast' ? 'Quick responses, no evidence' : 'Full consensus + cryptographic proof'}
+                    </span>
+                </div>
                 <div class="model-selector-container">
                     <label class="model-selector-label">Model:</label>
                     <select id="model-selector" class="model-selector">
@@ -129,6 +189,17 @@ export async function render(container, appState) {
 
             <!-- Input Container -->
             <div class="chat-input-container">
+                <!-- Demo Scenarios -->
+                <div class="demo-scenarios-container">
+                    <label class="demo-scenarios-label">🎯 Demo Scenarios</label>
+                    <select class="demo-scenarios-select" id="demo-scenarios-select">
+                        <option value="">Choose a scenario...</option>
+                        ${DEMO_SCENARIOS.map(scenario => `
+                            <option value="${scenario.id}">${scenario.label}</option>
+                        `).join('')}
+                    </select>
+                </div>
+
                 <!-- Attached Files -->
                 <div class="attached-files" id="attached-files">
                     ${renderAttachedFiles()}
@@ -158,6 +229,20 @@ export async function render(container, appState) {
                     </button>
                 </div>
                 <input type="file" id="file-input" style="display: none;" multiple>
+            </div>
+        </div>
+
+        <!-- Build Trace Side Panel -->
+        <div class="build-trace-panel" id="build-trace-panel">
+            <div class="build-trace-header">
+                <h3 class="build-trace-title">🔍 Build Trace</h3>
+                <button class="build-trace-close" id="build-trace-close">×</button>
+            </div>
+            <div class="build-trace-content" id="build-trace-content">
+                <p style="color: var(--color-text-muted);">Select a Mission Mode message to view its build trace.</p>
+            </div>
+            <div class="build-trace-footer">
+                <button class="btn-view-raw" id="btn-view-raw">View Raw Evidence JSON</button>
             </div>
         </div>
     `;
@@ -219,8 +304,10 @@ function renderMessage(msg) {
                     ${msg.files.map(file => `<span class="file-chip">📎 ${file.name}</span>`).join('')}
                 </div>
             ` : ''}
-            ${!isUser && msg.mizziStatus ? renderMizziStatus(msg) : ''}
-            ${!isUser && msg.evidenceHash ? `
+            ${!isUser && msg.evidenceData ? renderMiniPipeline(msg.evidenceData.agent_decisions) : ''}
+            ${!isUser && msg.evidenceData ? renderEvidencePanel(msg) : ''}
+            ${!isUser && msg.mizziStatus && !msg.evidenceData ? renderMizziStatus(msg) : ''}
+            ${!isUser && msg.evidenceHash && !msg.evidenceData ? `
                 <div class="message-evidence">
                     <button class="btn-text" onclick="alert('Evidence: ${msg.evidenceHash}')">
                         🔒 View Evidence
@@ -422,6 +509,69 @@ function setupEventListeners(container, appState) {
             chatInput.focus();
         });
     });
+
+    // Mode toggle
+    const modeOptions = container.querySelectorAll('.mode-option');
+    modeOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            chatMode = option.dataset.mode;
+            localStorage.setItem('missionize_chat_mode', chatMode);
+
+            // Update active state
+            modeOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+
+            // Update description text
+            const descText = container.querySelector('.mode-toggle-container span');
+            if (descText) {
+                descText.textContent = chatMode === 'fast'
+                    ? 'Quick responses, no evidence'
+                    : 'Full consensus + cryptographic proof';
+            }
+
+            console.log(`[Chat] Switched to ${chatMode} mode`);
+        });
+    });
+
+    // Demo scenarios dropdown
+    const demoSelect = document.getElementById('demo-scenarios-select');
+    if (demoSelect) {
+        demoSelect.addEventListener('change', (e) => {
+            const scenarioId = e.target.value;
+            if (scenarioId) {
+                const scenario = DEMO_SCENARIOS.find(s => s.id === scenarioId);
+                if (scenario) {
+                    chatInput.value = scenario.prompt;
+                    chatInput.focus();
+                }
+                // Reset select
+                e.target.value = '';
+            }
+        });
+    }
+
+    // Build trace panel close button
+    const buildTraceClose = document.getElementById('build-trace-close');
+    if (buildTraceClose) {
+        buildTraceClose.addEventListener('click', () => {
+            document.getElementById('build-trace-panel').classList.remove('open');
+        });
+    }
+
+    // View raw evidence button
+    const btnViewRaw = document.getElementById('btn-view-raw');
+    if (btnViewRaw) {
+        btnViewRaw.addEventListener('click', () => {
+            if (currentBuildTraceData) {
+                const jsonWindow = window.open('', '_blank');
+                jsonWindow.document.write('<html><head><title>Evidence JSON</title></head><body>');
+                jsonWindow.document.write('<pre>' + JSON.stringify(currentBuildTraceData, null, 2) + '</pre>');
+                jsonWindow.document.write('</body></html>');
+            } else {
+                alert('No evidence data available');
+            }
+        });
+    }
 }
 
 /**
@@ -500,11 +650,12 @@ async function sendToBackend(message, appState) {
     // Create AI message placeholder
     const aiMessage = {
         role: 'assistant',
-        content: '⏳ Sending to Missionize backend...',
+        content: chatMode === 'mission' ? '⏳ Running consensus pipeline...' : '⏳ Sending to Missionize backend...',
         timestamp: new Date().toISOString(),
         model: selectedModel,
         missionId: null,
-        mizziStatus: null
+        mizziStatus: null,
+        evidenceData: null
     };
 
     currentConversation.messages.push(aiMessage);
@@ -523,30 +674,58 @@ async function sendToBackend(message, appState) {
                 role: msg.role,
                 content: msg.content
             }));
-        
-        console.log('[Chat] Sending messages:', messages);
 
-        // Build request payload
-        const payload = {
-            messages: messages,
-            model_id: selectedModel,
-            conversation_id: currentConversation.id
-        };
+        console.log(`[Chat] ${chatMode.toUpperCase()} MODE - Sending messages:`, messages.length);
 
-        // Call new backend API endpoint
-        console.log('[Chat] Calling /api/chat/send with payload:', payload);
-        const response = await postJson('/api/chat/send', payload, appState);
-        console.log('[Chat] Got response:', response);
+        // ROUTING: Check chatMode and call appropriate backend
+        if (chatMode === 'mission') {
+            // ====== MISSION MODE: Full consensus pipeline ======
+            console.log('[Chat] MISSION MODE: Calling /run-custom');
 
-        // Check if streaming is available
-        if (response.stream_url || response.message_id) {
-            console.log('[Chat] Starting SSE stream for message_id:', response.message_id);
-            // Use SSE streaming
-            const messageId = response.message_id;
-            await handleStreamingResponse(messageId, aiMessage, appState, container);
+            const response = await runMission(message, messages, appState);
+            console.log('[Chat] MISSION MODE: Got response:', response);
+
+            // Extract evidence data
+            aiMessage.evidenceData = {
+                mission_id: response.mission_id,
+                status: response.status,
+                agent_decisions: response.agent_decisions || {},
+                evidence_hash: response.evidence_hash,
+                trust_score: response.trust_score,
+                confidence_score: response.confidence_score,
+                timestamp: response.timestamp,
+                guardian_approved: response.guardian_approved
+            };
+
+            // Set message content
+            aiMessage.content = response.final_recommendation || response.message || 'Mission completed.';
+            aiMessage.missionId = response.mission_id;
+            aiMessage.mizziStatus = response.guardian_approved ? 'passed' : 'failed';
+
+            console.log('[Chat] MISSION MODE: Evidence data stored:', aiMessage.evidenceData);
+
         } else {
-            // Fallback to non-streaming response
-            handleNonStreamingResponse(response, aiMessage);
+            // ====== FAST MODE: Direct LLM calls (existing logic) ======
+            console.log('[Chat] FAST MODE: Calling /api/chat/send');
+
+            const payload = {
+                messages: messages,
+                model_id: selectedModel,
+                conversation_id: currentConversation.id
+            };
+
+            const response = await postJson('/api/chat/send', payload, appState);
+            console.log('[Chat] FAST MODE: Got response:', response);
+
+            // Check if streaming is available
+            if (response.stream_url || response.message_id) {
+                console.log('[Chat] FAST MODE: Starting SSE stream for message_id:', response.message_id);
+                const messageId = response.message_id;
+                await handleStreamingResponse(messageId, aiMessage, appState, container);
+            } else {
+                // Fallback to non-streaming response
+                handleNonStreamingResponse(response, aiMessage);
+            }
         }
 
         saveConversations();
@@ -555,6 +734,7 @@ async function sendToBackend(message, appState) {
         // Handle error
         aiMessage.content = `**Error:** ${error.message}\n\nPlease check:\n• Is the backend running?\n• Is the API URL correct? (${getApiBaseUrl(appState)})\n• Check browser console for details`;
         aiMessage.mizziStatus = 'error';
+        aiMessage.evidenceData = null;
         saveConversations();
 
         console.error('Backend API error:', error);
@@ -744,6 +924,227 @@ window.copyToClipboard = function(text) {
         }, 2000);
     });
 };
+
+/**
+ * Render mini consensus pipeline
+ */
+function renderMiniPipeline(agentDecisions) {
+    if (!agentDecisions) return '';
+
+    const agents = [
+        { key: 'proposer', letter: 'P', label: 'Proposer' },
+        { key: 'challenger', letter: 'C', label: 'Challenger' },
+        { key: 'arbiter', letter: 'A', label: 'Arbiter' },
+        { key: 'devils_advocate', letter: 'D', label: 'Devil\'s Advocate' },
+        { key: 'guardian_angel', letter: 'G', label: 'Guardian' }
+    ];
+
+    return `
+        <div class="mini-pipeline">
+            ${agents.map((agent, index) => {
+                // Determine agent status
+                let status = 'pending';
+                if (agentDecisions[agent.key]) {
+                    const decision = agentDecisions[agent.key];
+                    if (decision.approved || decision.status === 'passed') {
+                        status = 'passed';
+                    } else if (decision.status === 'failed' || decision.approved === false) {
+                        status = 'failed';
+                    }
+                }
+
+                return `
+                    <div class="pipeline-agent">
+                        <div class="pipeline-icon ${status}">
+                            ${agent.letter}
+                        </div>
+                        <div class="pipeline-label">${agent.label}</div>
+                    </div>
+                    ${index < agents.length - 1 ? '<div class="pipeline-arrow">→</div>' : ''}
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+/**
+ * Render evidence panel
+ */
+function renderEvidencePanel(msg) {
+    if (!msg.evidenceData) return '';
+
+    const { mission_id, evidence_hash, timestamp, status, trust_score, guardian_approved } = msg.evidenceData;
+    const consensus_status = guardian_approved ? 'passed' : (status === 'completed' ? 'passed' : 'failed');
+
+    return `
+        <div class="evidence-panel" id="evidence-${msg.timestamp}">
+            <div class="evidence-header" onclick="window.toggleEvidence('${msg.timestamp}')">
+                <div class="evidence-title">
+                    🔒 Cryptographic Evidence
+                    <span class="evidence-expand-icon">▼</span>
+                </div>
+            </div>
+            <div class="evidence-content">
+                <div class="evidence-row">
+                    <span class="evidence-label">Mission ID</span>
+                    <span class="evidence-value">${mission_id || 'N/A'}</span>
+                </div>
+                <div class="evidence-row">
+                    <span class="evidence-label">Consensus Status</span>
+                    <span class="evidence-value">
+                        ${consensus_status === 'passed' ? '✅ Passed' :
+                          consensus_status === 'failed' ? '❌ Failed' : '⚠️ Partial'}
+                    </span>
+                </div>
+                <div class="evidence-row">
+                    <span class="evidence-label">Trust Score</span>
+                    <span class="evidence-value">${trust_score ? (trust_score * 100).toFixed(1) + '%' : 'N/A'}</span>
+                </div>
+                <div class="evidence-row">
+                    <span class="evidence-label">Evidence Hash (SHA-256)</span>
+                    <div class="evidence-hash-display">
+                        <span class="evidence-hash-text">${evidence_hash ? evidence_hash.substring(0, 16) + '...' : 'N/A'}</span>
+                        ${evidence_hash ? `<button class="btn-copy-hash" onclick="window.copyHashToClipboard('${evidence_hash}')">Copy</button>` : ''}
+                    </div>
+                </div>
+                <div class="evidence-row">
+                    <span class="evidence-label">Timestamp</span>
+                    <span class="evidence-value">${timestamp || new Date().toISOString()}</span>
+                </div>
+                ${msg.evidenceData.agent_decisions ? `
+                <div style="margin-top: 1rem;">
+                    <button class="btn-show-trace" onclick="window.showBuildTrace(${escapeForJs(JSON.stringify(msg.evidenceData))})">
+                        🔍 Show build trace
+                    </button>
+                </div>
+                ` : ''}
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                    <details>
+                        <summary style="cursor: pointer; color: var(--color-primary); font-weight: 600; font-size: 0.875rem;">
+                            Why you can trust this
+                        </summary>
+                        <div style="margin-top: 0.75rem; font-size: 0.85rem; line-height: 1.6; color: var(--color-text-muted);">
+                            <ul style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+                                <li>Every agent decision is recorded and hashed</li>
+                                <li>SHA-256 + HMAC-SHA256 cryptographic sealing</li>
+                                <li>Evidence envelopes are immutable and timestamped</li>
+                                <li>Full audit trail for compliance (EU AI Act, SOC 2, HIPAA)</li>
+                                <li>Deterministic replay allows exact verification</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Toggle evidence panel expansion
+ */
+window.toggleEvidence = function(timestamp) {
+    const panel = document.getElementById(`evidence-${timestamp}`);
+    if (panel) {
+        panel.classList.toggle('expanded');
+    }
+};
+
+/**
+ * Copy evidence hash to clipboard
+ */
+window.copyHashToClipboard = function(hash) {
+    navigator.clipboard.writeText(hash).then(() => {
+        alert('Evidence hash copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy hash:', err);
+    });
+};
+
+/**
+ * Show build trace panel
+ */
+window.showBuildTrace = function(evidenceData) {
+    currentBuildTraceData = evidenceData;
+    populateBuildTrace(evidenceData.agent_decisions);
+    document.getElementById('build-trace-panel').classList.add('open');
+};
+
+/**
+ * Populate build trace panel with agent data
+ */
+function populateBuildTrace(agentDecisions) {
+    if (!agentDecisions) {
+        document.getElementById('build-trace-content').innerHTML = '<p style="color: var(--color-text-muted);">No agent data available.</p>';
+        return;
+    }
+
+    const agents = [
+        { key: 'proposer', name: 'Proposer', icon: 'P' },
+        { key: 'challenger', name: 'Challenger', icon: 'C' },
+        { key: 'arbiter', name: 'Arbiter', icon: 'A' },
+        { key: 'devils_advocate', name: 'Devil\'s Advocate', icon: 'D' },
+        { key: 'guardian_angel', name: 'Guardian Angel', icon: 'G' }
+    ];
+
+    let html = '';
+
+    agents.forEach(agent => {
+        const decision = agentDecisions[agent.key];
+        if (!decision) return;
+
+        html += `
+            <div class="trace-agent-section">
+                <div class="trace-agent-header">
+                    <div class="trace-agent-icon">${agent.icon}</div>
+                    <div class="trace-agent-name">${agent.name}</div>
+                    <div class="trace-agent-time">${decision.timestamp || 'N/A'}</div>
+                </div>
+                <div class="trace-agent-output">
+                    ${formatAgentOutput(decision)}
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('build-trace-content').innerHTML = html || '<p>No agent data available.</p>';
+}
+
+/**
+ * Format agent output for display
+ */
+function formatAgentOutput(decision) {
+    if (typeof decision === 'string') {
+        return `<p>${escapeHtml(decision)}</p>`;
+    }
+
+    let output = [];
+
+    if (decision.reasoning) {
+        output.push(`<p><strong>Reasoning:</strong> ${escapeHtml(decision.reasoning)}</p>`);
+    }
+
+    if (decision.decision) {
+        output.push(`<p><strong>Decision:</strong> ${escapeHtml(decision.decision)}</p>`);
+    }
+
+    if (decision.objections && Array.isArray(decision.objections)) {
+        output.push(`<p><strong>Objections:</strong></p><ul>${decision.objections.map(obj => `<li>${escapeHtml(obj)}</li>`).join('')}</ul>`);
+    }
+
+    if (decision.edge_cases && Array.isArray(decision.edge_cases)) {
+        output.push(`<p><strong>Edge Cases:</strong></p><ul>${decision.edge_cases.map(ec => `<li>${escapeHtml(ec)}</li>`).join('')}</ul>`);
+    }
+
+    if (decision.approved !== undefined) {
+        output.push(`<p><strong>Approved:</strong> ${decision.approved ? '✅ Yes' : '❌ No'}</p>`);
+    }
+
+    if (decision.confidence !== undefined) {
+        output.push(`<p><strong>Confidence:</strong> ${(decision.confidence * 100).toFixed(1)}%</p>`);
+    }
+
+    return output.join('') || '<p>No details available.</p>';
+}
 
 /**
  * Get conversations for sidebar (exported for use in dashboard)

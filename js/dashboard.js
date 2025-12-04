@@ -52,9 +52,38 @@ function initDashboard() {
 
     // Setup event listeners
     setupNavigation();
+    setupThemeToggle();
 
     // Load initial view (chat by default)
     switchView('chat');
+}
+
+/**
+ * Setup theme toggle functionality
+ */
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-toggle-icon');
+
+    // Load saved theme preference
+    const savedTheme = localStorage.getItem('missionize_theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeIcon.textContent = '☀️';
+    }
+
+    // Toggle theme on click
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const isLightMode = document.body.classList.toggle('light-mode');
+
+            // Update icon
+            themeIcon.textContent = isLightMode ? '☀️' : '🌙';
+
+            // Save preference
+            localStorage.setItem('missionize_theme', isLightMode ? 'light' : 'dark');
+        });
+    }
 }
 
 /**

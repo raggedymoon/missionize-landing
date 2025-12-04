@@ -172,3 +172,30 @@ export async function testConnection(appState) {
         throw new Error(`API connection test failed: ${error.message}`);
     }
 }
+
+/**
+ * Run a mission through the full consensus engine
+ * @param {string} task - The user's task/question
+ * @param {Array} messages - Conversation history for context
+ * @param {Object} appState - Application state
+ * @returns {Promise<Object>} Mission response with evidence
+ */
+export async function runMission(task, messages, appState) {
+    // Build context from conversation history
+    const context = {
+        conversation_history: messages.map(m => ({
+            role: m.role,
+            content: m.content
+        }))
+    };
+
+    const payload = {
+        task: task,
+        context: context,
+        execution_mode: "fast", // Use fast mode for responsive UX (2 agents, ~5s)
+        require_consensus: true,
+        enable_pattern_learning: true
+    };
+
+    return await postJson('/run-custom', payload, appState);
+}
