@@ -582,16 +582,18 @@ async function handleStreamingResponse(messageId, aiMessage, appState, container
                 const data = JSON.parse(event.data);
                 if (data.text || data.content) {
                     accumulatedContent += (data.text || data.content);
-                    console.log('[SSE] Accumulated content:', accumulatedContent);
+                    console.log('[SSE] Accumulated content length:', accumulatedContent.length);
                     aiMessage.content = accumulatedContent;
-                    saveConversations();
-
-                    // Re-render to show streaming content
-                    const messagesContainer = document.getElementById('chat-messages');
-                    if (messagesContainer) {
-                        messagesContainer.innerHTML = renderMessages();
-                        scrollToBottom();
+                    
+                    // Update the message content directly in the DOM
+                    // Find the last .message-ai element and update its content
+                    const messageElements = document.querySelectorAll('.message-ai .message-content');
+                    if (messageElements.length > 0) {
+                        const lastMessageContent = messageElements[messageElements.length - 1];
+                        lastMessageContent.innerHTML = accumulatedContent.replace(/\n/g, '<br>');
                     }
+                    
+                    scrollToBottom();
                 }
             });
 
