@@ -562,8 +562,10 @@ async function sendToBackend(message, appState) {
 
     isStreaming = false;
 
-    // Final re-render with complete response
-    await render(container, appState);
+    // Don't re-render here - the streaming handler already updated the DOM
+    // and saved to localStorage. Re-rendering would cause a flash/reset.
+    // Just scroll to bottom to ensure visibility
+    scrollToBottom();
 }
 
 /**
