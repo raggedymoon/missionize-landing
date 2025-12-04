@@ -598,16 +598,20 @@ async function handleStreamingResponse(messageId, aiMessage, appState, container
             });
 
             eventSource.addEventListener('final', (event) => {
+                console.log('[SSE] Got final event:', event.data);
                 const data = JSON.parse(event.data);
 
-                // Update with final content and metadata
-                aiMessage.content = data.content || accumulatedContent;
+                // Use accumulated content (NOT data.content which doesn't exist)
+                aiMessage.content = accumulatedContent;
                 aiMessage.missionId = data.mission_id || null;
                 aiMessage.mizziStatus = data.mizzi_status || 'completed';
                 aiMessage.filesGenerated = data.files_generated || 0;
+                
+                console.log('[SSE] Final aiMessage.content length:', aiMessage.content.length);
 
                 eventSource.close();
                 saveConversations();
+                console.log('[SSE] Saved to localStorage');
                 resolve();
             });
 
