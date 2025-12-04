@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Missionize API Diagnostic</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #0f0; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #333; }
+        .pass { border-color: #0f0; }
+        .fail { border-color: #f00; color: #f00; }
+        .pending { border-color: #ff0; color: #ff0; }
+        pre { white-space: pre-wrap; font-size: 12px; }
+        h1 { color: #fff; }
+        button { background: #4CAF50; color: white; padding: 15px 30px; font-size: 16px; cursor: pointer; border: none; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Missionize API Diagnostic Tool</h1>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://api.missionize.ai';
+        const results = document.getElementById('results');
+
+        function log(testName, status, details) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `<strong>${status.toUpperCase()}: ${testName}</strong><pre>${JSON.stringify(details, null, 2)}</pre>`;
+            results.appendChild(div);
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '<div class="test pending">Running tests...</div>';
+            results.innerHTML = '';
+
+            // Test 1: Health check
+            try {
+                const health = await fetch(`${API_BASE}/health`);
+                const healthData = await health.json();
+                log('Health Check', health.ok ? 'pass' : 'fail', healthData);
+            } catch (e) {
+                log('Health Check', 'fail', { error: e.message });
+            }
+
+            // Test 2: Models endpoint
+            let models = [];
+            try {
+                const modelsRes = await fetch(`${API_BASE}/api/chat/models`);
+                const modelsData = await modelsRes.json();
+                models = modelsData.models || [];
+                
+                const availableModels = models.filter(m => m.available);
+                const unavailableModels = models.filter(m => !m.available);
+                
+                log('Models Endpoint', modelsRes.ok ? 'pass' : 'fail', {
+                    total: models.length,
+                    available: availableModels.map(m => m.id),
+                    unavailable: unavailableModels.map(m => `${m.id}: ${m.unavailable_reason}`)
+                });
+            } catch (e) {
+                log('Models Endpoint', 'fail', { error: e.message });
+            }
+
+            // Test 3: Chat Send endpoint
+            let messageId = null;
+            try {
+                const sendRes = await fetch(`${API_BASE}/api/chat/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [{ role: 'user', content: 'Say hello in 5 words' }],
+                        model_id: 'gpt-4o-mini',
+                        conversation_id: 'test-' + Date.now()
+                    })
+                });
+                const sendData = await sendRes.json();
+                messageId = sendData.message_id;
+                log('Chat Send', sendRes.ok ? 'pass' : 'fail', sendData);
+            } catch (e) {
+                log('Chat Send', 'fail', { error: e.message });
+            }
+
+            // Test 4: SSE Stream
+            if (messageId) {
+                try {
+                    log('SSE Stream', 'pending', { message_id: messageId, status: 'Connecting...' });
+                    
+                    const eventSource = new EventSource(`${API_BASE}/api/chat/stream?message_id=${messageId}`);
+                    let chunks = [];
+                    let finalEvent = null;
+                    let errorEvent = null;
+
+                    const timeout = setTimeout(() => {
+                        eventSource.close();
+                        log('SSE Stream Result', 'fail', { 
+                            error: 'Timeout after 30s',
+                            chunks_received: chunks.length,
+                            partial_content: chunks.join('')
+                        });
+                    }, 30000);
+
+                    eventSource.addEventListener('chunk', (e) => {
+                        const data = JSON.parse(e.data);
+                        chunks.push(data.text || data.content || '');
+                    });
+
+                    eventSource.addEventListener('status', (e) => {
+                        console.log('Status:', e.data);
+                    });
+
+                    eventSource.addEventListener('final', (e) => {
+                        clearTimeout(timeout);
+                        finalEvent = JSON.parse(e.data);
+                        eventSource.close();
+                        log('SSE Stream Result', 'pass', {
+                            chunks_received: chunks.length,
+                            content: chunks.join(''),
+                            final: finalEvent
+                        });
+                    });
+
+                    eventSource.addEventListener('error', (e) => {
+                        clearTimeout(timeout);
+                        if (e.data) {
+                            errorEvent = JSON.parse(e.data);
+                            log('SSE Stream Result', 'fail', {
+                                error_from_backend: errorEvent,
+                                chunks_before_error: chunks.join('')
+                            });
+                        }
+                        eventSource.close();
+                    });
+
+                    eventSource.onerror = (e) => {
+                        clearTimeout(timeout);
+                        eventSource.close();
+                        if (!finalEvent && !errorEvent) {
+                            log('SSE Stream Result', 'fail', {
+                                error: 'Connection failed',
+                                readyState: eventSource.readyState,
+                                chunks_received: chunks.length
+                            });
+                        }
+                    };
+
+                } catch (e) {
+                    log('SSE Stream', 'fail', { error: e.message });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
