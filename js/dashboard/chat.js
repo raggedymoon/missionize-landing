@@ -713,8 +713,12 @@ async function sendToBackend(message, appState) {
                 guardian_approved: response.guardian_approved
             };
 
-            // Set message content
-            aiMessageRef.content = response.final_recommendation || response.message || 'Mission completed.';
+            // Set message content - check if blocked and format accordingly
+            if (response.guardian_approved === false || response.status === 'blocked') {
+                aiMessageRef.content = formatBlockedResponse(response);
+            } else {
+                aiMessageRef.content = response.final_recommendation || response.message || 'Mission completed.';
+            }
             aiMessageRef.missionId = response.mission_id;
             aiMessageRef.mizziStatus = response.guardian_approved ? 'passed' : 'failed';
 
@@ -893,6 +897,41 @@ function handleNonStreamingResponse(response, aiMessage) {
     aiMessage.missionId = response.mission_id || null;
     aiMessage.mizziStatus = response.mizzi_status || 'completed';
     aiMessage.filesGenerated = response.files_generated || 0;
+}
+
+/**
+ * Format a blocked response into user-friendly HTML
+ * @param {Object} response - Backend response with guardian_approved=false
+ * @returns {string} Formatted HTML for blocked message
+ */
+function formatBlockedResponse(response) {
+    const confidence = response.confidence_score || 0;
+    const trust = response.trust_score || 0;
+    const decisions = response.agent_decisions || {};
+
+    const issues = [];
+    if (confidence < 0.70) {
+        issues.push(`Confidence: ${(confidence * 100).toFixed(0)}% (needs 70%)`);
+    }
+    if (trust < 0.60) {
+        issues.push(`Trust: ${(trust * 100).toFixed(0)}% (needs 60%)`);
+    }
+    if (decisions.arbiter?.risk_level === 'HIGH') {
+        issues.push('Risk Level: HIGH');
+    }
+    if (decisions.challenger?.objections?.length > 0) {
+        issues.push(`${decisions.challenger.objections.length} unresolved objections`);
+    }
+    if (issues.length === 0) {
+        issues.push(response.blocked_reason || 'Quality thresholds not met');
+    }
+
+    return `<div class="message-blocked">
+        <div class="blocked-header">🛑 Mission Blocked by Guardian</div>
+        <div class="blocked-explanation">Your request didn't meet quality thresholds:</div>
+        <ul class="blocked-issues-list">${issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+        <div class="blocked-explanation"><strong>Try:</strong> Add more context, break into smaller steps, or check the evidence panel below.</div>
+    </div>`;
 }
 
 /**

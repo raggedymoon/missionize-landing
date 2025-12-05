@@ -76,6 +76,12 @@ function setupThemeToggle() {
     if (savedTheme === 'light') {
         document.body.classList.add('light-mode');
         themeIcon.textContent = '☀️';
+
+        // Set correct logo for light mode
+        const logoImg = document.querySelector('.logo-image');
+        if (logoImg) {
+            logoImg.src = 'images/logo.png';
+        }
     }
 
     // Toggle theme on click
@@ -88,6 +94,14 @@ function setupThemeToggle() {
 
             // Save preference
             localStorage.setItem('missionize_theme', isLightMode ? 'light' : 'dark');
+
+            // Swap logo
+            const logoImg = document.querySelector('.logo-image');
+            if (logoImg) {
+                logoImg.src = isLightMode
+                    ? 'images/logo.png'
+                    : 'images/missionize_logo_horizontal_white.png';
+            }
         });
     }
 }

@@ -1757,3 +1757,45 @@ body {
         flex-direction: column;
     }
 }
+
+/* ==================== WOW PACK V3 FEATURES ==================== */
+
+/* Blocked Message Styling */
+.message-blocked {
+    background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(245,158,11,0.1));
+    border-left: 4px solid #ef4444;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.blocked-header {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ef4444;
+    margin-bottom: 0.75rem;
+}
+
+.blocked-explanation {
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.blocked-issues-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
+.blocked-issues-list li {
+    padding: 0.25rem 0 0.25rem 1.5rem;
+    position: relative;
+    color: var(--color-text-muted);
+}
+
+.blocked-issues-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0.5rem;
+    color: #ef4444;
+}
