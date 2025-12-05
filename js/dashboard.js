@@ -50,6 +50,12 @@ function initDashboard() {
     pageTitleElement = document.querySelector('.page-title');
     navTabs = Array.from(document.querySelectorAll('.nav-tab'));
 
+    // Auto-set API key if not present
+    if (!localStorage.getItem('missionize_api_key')) {
+        localStorage.setItem('missionize_api_key', 'missionize_prod_2025_8huit7u8pp76r5u');
+        console.log('[Dashboard] API key auto-configured');
+    }
+
     // Setup event listeners
     setupNavigation();
     setupThemeToggle();
