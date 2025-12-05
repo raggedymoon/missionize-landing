@@ -514,7 +514,14 @@ function setupEventListeners(container, appState) {
     const modeOptions = container.querySelectorAll('.mode-option');
     modeOptions.forEach(option => {
         option.addEventListener('click', () => {
-            chatMode = option.dataset.mode;
+            const newMode = option.dataset.mode;
+
+            // Guard: Don't do anything if already in this mode
+            if (chatMode === newMode) {
+                return;
+            }
+
+            chatMode = newMode;
             localStorage.setItem('missionize_chat_mode', chatMode);
 
             // Update active state
