@@ -672,6 +672,11 @@ async function sendToBackend(message, appState) {
     const container = document.querySelector('.content-container');
     await render(container, appState);
 
+    // IMPORTANT: Get fresh reference to aiMessage after render() reloads from localStorage
+    // The render() call above triggers initChat() which reloads currentConversation,
+    // making the original aiMessage variable a stale reference
+    const aiMessageRef = currentConversation.messages[currentConversation.messages.length - 1];
+
     try {
         // Build messages array from conversation history
         // Filter out placeholder messages (starting with ⏳) and empty content
@@ -696,8 +701,8 @@ async function sendToBackend(message, appState) {
 
             console.log(`[Chat] MISSION MODE: Got response in ${elapsed}s:`, response);
 
-            // Extract evidence data
-            aiMessage.evidenceData = {
+            // Extract evidence data (use fresh reference aiMessageRef)
+            aiMessageRef.evidenceData = {
                 mission_id: response.mission_id,
                 status: response.status,
                 agent_decisions: response.agent_decisions || {},
@@ -709,11 +714,11 @@ async function sendToBackend(message, appState) {
             };
 
             // Set message content
-            aiMessage.content = response.final_recommendation || response.message || 'Mission completed.';
-            aiMessage.missionId = response.mission_id;
-            aiMessage.mizziStatus = response.guardian_approved ? 'passed' : 'failed';
+            aiMessageRef.content = response.final_recommendation || response.message || 'Mission completed.';
+            aiMessageRef.missionId = response.mission_id;
+            aiMessageRef.mizziStatus = response.guardian_approved ? 'passed' : 'failed';
 
-            console.log('[Chat] MISSION MODE: Evidence data stored:', aiMessage.evidenceData);
+            console.log('[Chat] MISSION MODE: Evidence data stored:', aiMessageRef.evidenceData);
             console.log('[Chat] MISSION MODE: Re-rendering to show evidence panel...');
 
             // Save and re-render to show the completed mission with evidence
@@ -737,10 +742,10 @@ async function sendToBackend(message, appState) {
             if (response.stream_url || response.message_id) {
                 console.log('[Chat] FAST MODE: Starting SSE stream for message_id:', response.message_id);
                 const messageId = response.message_id;
-                await handleStreamingResponse(messageId, aiMessage, appState, container);
+                await handleStreamingResponse(messageId, aiMessageRef, appState, container);
             } else {
                 // Fallback to non-streaming response
-                handleNonStreamingResponse(response, aiMessage);
+                handleNonStreamingResponse(response, aiMessageRef);
             }
         }
 
@@ -757,9 +762,9 @@ async function sendToBackend(message, appState) {
             errorDetails = '\n\n**Fast Mode Details:**\n• Check Network tab for /api/chat/send request\n• Verify SSE streaming is working';
         }
 
-        aiMessage.content = `**Error:** ${error.message}\n\nPlease check:\n• Is the backend running?\n• Is the API URL correct? (${getApiBaseUrl(appState)})\n• Check browser console for full error details${errorDetails}`;
-        aiMessage.mizziStatus = 'error';
-        aiMessage.evidenceData = null;
+        aiMessageRef.content = `**Error:** ${error.message}\n\nPlease check:\n• Is the backend running?\n• Is the API URL correct? (${getApiBaseUrl(appState)})\n• Check browser console for full error details${errorDetails}`;
+        aiMessageRef.mizziStatus = 'error';
+        aiMessageRef.evidenceData = null;
         saveConversations();
 
         // Re-render to show error message
