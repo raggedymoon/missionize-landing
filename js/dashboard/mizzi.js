@@ -230,15 +230,145 @@ function getStatusColor(status) {
 /**
  * Handle Mizzi actions
  */
-window.handleMizziAction = function(action) {
-    const messages = {
-        diagnostics: 'Running Mizzi diagnostics...\n\nThis would trigger a comprehensive system check.',
-        logs: 'Opening full Mizzi event log...\n\nThis would display the complete event history.',
-        settings: 'Opening Mizzi settings...\n\nHere you could configure validation rules, thresholds, and monitoring preferences.'
+window.handleMizziAction = async function(action) {
+    if (action === 'diagnostics') {
+        await runMizziDiagnostics();
+    } else if (action === 'logs') {
+        alert('Opening full Mizzi event log...\n\nThis would display the complete event history.');
+    } else if (action === 'settings') {
+        alert('Opening Mizzi settings...\n\nHere you could configure validation rules, thresholds, and monitoring preferences.');
+    }
+};
+
+/**
+ * Run comprehensive system diagnostics
+ */
+async function runMizziDiagnostics() {
+    const results = {
+        api: { status: 'checking', latency: null, error: null },
+        storage: { status: 'checking', items: 0, size: '0 KB' },
+        mode: localStorage.getItem('missionize_chat_mode') || 'fast',
+        conversations: 0
     };
 
-    alert(messages[action] || 'Action not implemented');
-};
+    // Test API
+    const startTime = Date.now();
+    try {
+        const baseUrl = localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+        const response = await fetch(`${baseUrl}/health`, {
+            headers: {
+                'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+            }
+        });
+        results.api.latency = Date.now() - startTime;
+        results.api.status = response.ok ? 'healthy' : 'degraded';
+
+        if (response.ok) {
+            const data = await response.json();
+            results.api.version = data.version || 'unknown';
+        }
+    } catch (e) {
+        results.api.status = 'offline';
+        results.api.error = e.message;
+        results.api.latency = Date.now() - startTime;
+    }
+
+    // Check localStorage
+    try {
+        const missionizeKeys = Object.keys(localStorage).filter(k => k.startsWith('missionize_'));
+        results.storage.items = missionizeKeys.length;
+
+        // Calculate approximate size
+        let totalSize = 0;
+        missionizeKeys.forEach(key => {
+            const value = localStorage.getItem(key) || '';
+            totalSize += key.length + value.length;
+        });
+        results.storage.size = totalSize < 1024 ? `${totalSize} B` :
+                              totalSize < 1024 * 1024 ? `${(totalSize / 1024).toFixed(1)} KB` :
+                              `${(totalSize / 1024 / 1024).toFixed(2)} MB`;
+        results.storage.status = 'ok';
+    } catch (e) {
+        results.storage.status = 'error';
+        results.storage.error = e.message;
+    }
+
+    // Count conversations
+    try {
+        const conversations = JSON.parse(localStorage.getItem('missionize_conversations') || '[]');
+        results.conversations = conversations.length;
+    } catch {
+        results.conversations = 0;
+    }
+
+    showDiagnosticsResults(results);
+}
+
+/**
+ * Show diagnostics results in a modal
+ */
+function showDiagnosticsResults(results) {
+    const statusClass = results.api.status === 'healthy' ? 'healthy' :
+                       results.api.status === 'degraded' ? 'degraded' : 'offline';
+
+    const modal = document.createElement('div');
+    modal.className = 'mizzi-diagnostics-modal';
+    modal.innerHTML = `
+        <div class="diagnostics-content">
+            <div class="diagnostics-header">
+                <h4>🔍 System Diagnostics</h4>
+                <button class="diagnostics-close" onclick="this.closest('.mizzi-diagnostics-modal').remove()">✕</button>
+            </div>
+            <div class="diagnostics-body">
+                <div class="diag-row">
+                    <span class="diag-label">API Status:</span>
+                    <span class="diag-value ${statusClass}">
+                        ${results.api.status} ${results.api.latency ? `(${results.api.latency}ms)` : ''}
+                    </span>
+                </div>
+                ${results.api.error ? `
+                    <div class="diag-row">
+                        <span class="diag-label">Error:</span>
+                        <span class="diag-value error">${escapeHtml(results.api.error)}</span>
+                    </div>
+                ` : ''}
+                ${results.api.version ? `
+                    <div class="diag-row">
+                        <span class="diag-label">API Version:</span>
+                        <span class="diag-value">${results.api.version}</span>
+                    </div>
+                ` : ''}
+                <div class="diag-row">
+                    <span class="diag-label">Current Mode:</span>
+                    <span class="diag-value mode-${results.mode}">${results.mode === 'fast' ? '⚡ Fast' : '🔒 Mission'}</span>
+                </div>
+                <div class="diag-row">
+                    <span class="diag-label">Conversations:</span>
+                    <span class="diag-value">${results.conversations}</span>
+                </div>
+                <div class="diag-row">
+                    <span class="diag-label">Local Storage:</span>
+                    <span class="diag-value">${results.storage.items} items (${results.storage.size})</span>
+                </div>
+                <div class="diag-row">
+                    <span class="diag-label">Storage Status:</span>
+                    <span class="diag-value ${results.storage.status}">${results.storage.status}</span>
+                </div>
+            </div>
+            <div class="diagnostics-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.mizzi-diagnostics-modal').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
 
 /**
  * Format time ago helper
@@ -511,16 +641,63 @@ const MizziWidget = {
         const chatMode = localStorage.getItem('missionize_chat_mode') || 'fast';
         const chatCount = this.getChatCount();
 
-        // Contextual tips based on state
-        if (chatCount === 0) {
-            return 'Welcome! Start by asking a question in <strong>Fast Mode</strong> for quick responses.';
-        } else if (chatMode === 'fast' && chatCount >= 3) {
-            return 'Try <strong>Mission Mode</strong> for high-stakes decisions with cryptographic proof and multi-agent consensus.';
-        } else if (chatMode === 'mission') {
-            return 'Mission Mode active! You\'ll get evidence envelopes with trust scores. Click <strong>View Evidence</strong> after responses.';
-        } else {
-            return 'Use <strong>Fast Mode</strong> for quick queries, <strong>Mission Mode</strong> for critical decisions requiring proof.';
+        // Define all tips with conditions
+        const tips = [
+            {
+                condition: () => chatCount === 0,
+                tip: 'Start with <strong>Fast Mode</strong> for quick answers, then try <strong>Mission Mode</strong> for verified responses.',
+                priority: 10
+            },
+            {
+                condition: () => chatMode === 'mission',
+                tip: 'Mission Mode gives you cryptographic proof. Check the <strong>Evidence</strong> tab after responses!',
+                priority: 9
+            },
+            {
+                condition: () => chatMode === 'fast' && chatCount >= 3,
+                tip: 'Try <strong>Mission Mode</strong> for high-stakes decisions with multi-agent consensus and cryptographic proof.',
+                priority: 8
+            },
+            {
+                condition: () => true,
+                tip: 'Attach files using 📎 to analyze documents, CSVs, JSON, or code.',
+                priority: 5
+            },
+            {
+                condition: () => true,
+                tip: 'Use Demo Scenarios dropdown for pre-built prompts and examples.',
+                priority: 4
+            },
+            {
+                condition: () => true,
+                tip: 'Press <strong>Ctrl+D</strong> to toggle DevTools panel for debugging.',
+                priority: 3
+            },
+            {
+                condition: () => true,
+                tip: 'Click the 😇 icon anytime for system health and quick actions.',
+                priority: 2
+            },
+            {
+                condition: () => chatCount > 0,
+                tip: 'Use the sidebar to switch between conversations or start a new one.',
+                priority: 6
+            }
+        ];
+
+        // Find first matching tip by priority
+        const matching = tips
+            .filter(t => t.condition())
+            .sort((a, b) => b.priority - a.priority);
+
+        if (matching.length > 0) {
+            // Rotate through matching tips based on current second
+            const index = Math.floor(Date.now() / 10000) % matching.length;
+            return matching[index].tip;
         }
+
+        // Fallback
+        return 'Use <strong>Fast Mode</strong> for quick queries, <strong>Mission Mode</strong> for critical decisions requiring proof.';
     },
 
     startHealthCheckInterval() {

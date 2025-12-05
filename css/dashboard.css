@@ -2759,3 +2759,144 @@ body {
     font-size: 0.875rem;
     color: var(--color-text-muted);
 }
+
+/* Mizzi Diagnostics Modal */
+.mizzi-diagnostics-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.diagnostics-content {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    min-width: 400px;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.diagnostics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.diagnostics-header h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.diagnostics-close {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.diagnostics-close:hover {
+    color: var(--color-text);
+}
+
+.diagnostics-body {
+    padding: 1.5rem;
+}
+
+.diag-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.diag-row:last-child {
+    border-bottom: none;
+}
+
+.diag-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.diag-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+    font-family: var(--font-mono);
+}
+
+.diag-value.healthy {
+    color: var(--color-success);
+}
+
+.diag-value.degraded {
+    color: var(--color-warning);
+}
+
+.diag-value.offline {
+    color: var(--color-error);
+}
+
+.diag-value.error {
+    color: var(--color-error);
+    font-size: 0.75rem;
+}
+
+.diag-value.ok {
+    color: var(--color-success);
+}
+
+.diag-value.mode-fast {
+    color: #3b82f6;
+}
+
+.diag-value.mode-mission {
+    color: #a855f7;
+}
+
+.diagnostics-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
