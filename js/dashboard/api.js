@@ -178,9 +178,10 @@ export async function testConnection(appState) {
  * @param {string} task - The user's task/question
  * @param {Array} messages - Conversation history for context
  * @param {Object} appState - Application state
+ * @param {Array} fileContents - Array of file objects with {name, content, type, size}
  * @returns {Promise<Object>} Mission response with evidence
  */
-export async function runMission(task, messages, appState) {
+export async function runMission(task, messages, appState, fileContents = []) {
     // Build context from conversation history
     const context = {
         conversation_history: messages.map(m => ({
@@ -188,6 +189,21 @@ export async function runMission(task, messages, appState) {
             content: m.content
         }))
     };
+
+    // Add file contents to context if present
+    if (fileContents.length > 0) {
+        context.attached_files = fileContents.map(f => ({
+            name: f.name,
+            content: f.content,
+            type: f.type
+        }));
+
+        // Also append file info to the task
+        const fileList = fileContents.map(f => `[Attached: ${f.name}]`).join(' ');
+        task = `${task}\n\n${fileList}`;
+
+        console.log('[API] runMission: Including', fileContents.length, 'file(s) in context');
+    }
 
     const payload = {
         task: task,

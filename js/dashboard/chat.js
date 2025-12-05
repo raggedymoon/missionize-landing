@@ -753,6 +753,45 @@ window.removeFile = function(index) {
 };
 
 /**
+ * Read file contents as text
+ * @param {File} file - File object from input
+ * @returns {Promise<{name: string, content: string, type: string, size: number}>}
+ */
+async function readFileContent(file) {
+    const MAX_FILE_SIZE = 100 * 1024; // 100KB limit
+
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File ${file.name} is too large (max 100KB)`);
+    }
+
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            resolve({
+                name: file.name,
+                content: reader.result,
+                type: file.type || 'text/plain',
+                size: file.size
+            });
+        };
+
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+
+        // Read as text for text files, base64 for others
+        const textTypes = ['text/', 'application/json', 'application/xml', 'application/javascript'];
+        const isText = textTypes.some(t => file.type.startsWith(t)) ||
+                       file.name.match(/\.(txt|md|json|csv|xml|html|css|js|py|yaml|yml|toml|ini|cfg|log)$/i);
+
+        if (isText) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsDataURL(file); // Base64 for binary files
+        }
+    });
+}
+
+/**
  * Send message
  */
 async function sendMessage(appState) {
@@ -761,6 +800,19 @@ async function sendMessage(appState) {
 
     if (!message && attachedFiles.length === 0) return;
     if (isStreaming) return;
+
+    // Read file contents before sending
+    let fileContents = [];
+    if (attachedFiles.length > 0) {
+        try {
+            fileContents = await Promise.all(attachedFiles.map(f => readFileContent(f)));
+            console.log('[Chat] Read', fileContents.length, 'files:', fileContents.map(f => f.name));
+        } catch (err) {
+            console.error('[Chat] Error reading files:', err);
+            alert(`Error reading files: ${err.message}`);
+            return; // Don't send if file reading fails
+        }
+    }
 
     // Add user message
     const userMessage = {
@@ -799,14 +851,14 @@ async function sendMessage(appState) {
     const container = document.querySelector('.content-container');
     await render(container, appState);
 
-    // Call real backend API
-    await sendToBackend(message, appState);
+    // Call real backend API with file contents
+    await sendToBackend(message, appState, fileContents);
 }
 
 /**
  * Send message to backend and handle response
  */
-async function sendToBackend(message, appState) {
+async function sendToBackend(message, appState, fileContents = []) {
     isStreaming = true;
 
     // Create AI message placeholder
@@ -857,7 +909,7 @@ async function sendToBackend(message, appState) {
             }
 
             const startTime = Date.now();
-            const response = await runMission(message, messages, appState);
+            const response = await runMission(message, messages, appState, fileContents);
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
             // Stop progress indicator
@@ -897,11 +949,30 @@ async function sendToBackend(message, appState) {
             // ====== FAST MODE: Direct LLM calls (existing logic) ======
             console.log('[Chat] FAST MODE: Calling /api/chat/send');
 
+            // Build payload with file contents if present
             const payload = {
                 messages: messages,
                 model_id: selectedModel,
                 conversation_id: currentConversation.id
             };
+
+            // Add file contents to payload if any files were attached
+            if (fileContents.length > 0) {
+                payload.attached_files = fileContents.map(f => ({
+                    name: f.name,
+                    content: f.content,
+                    type: f.type
+                }));
+
+                // Also append file info to the last user message
+                const lastUserMsg = messages[messages.length - 1];
+                if (lastUserMsg && lastUserMsg.role === 'user') {
+                    const fileList = fileContents.map(f => `[Attached: ${f.name}]`).join(' ');
+                    lastUserMsg.content = `${lastUserMsg.content}\n\n${fileList}`;
+                }
+
+                console.log('[Chat] FAST MODE: Including', fileContents.length, 'file(s) in request');
+            }
 
             const response = await postJson('/api/chat/send', payload, appState);
             console.log('[Chat] FAST MODE: Got response:', response);
