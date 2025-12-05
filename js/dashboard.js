@@ -80,7 +80,7 @@ function setupThemeToggle() {
         // Set correct logo for light mode
         const logoImg = document.querySelector('.logo-image');
         if (logoImg) {
-            logoImg.src = 'images/logo.png';
+            logoImg.src = 'images/missionize_logo_horizontal.png';
         }
     }
 
@@ -99,7 +99,7 @@ function setupThemeToggle() {
             const logoImg = document.querySelector('.logo-image');
             if (logoImg) {
                 logoImg.src = isLightMode
-                    ? 'images/logo.png'
+                    ? 'images/missionize_logo_horizontal.png'
                     : 'images/missionize_logo_horizontal_white.png';
             }
         });
