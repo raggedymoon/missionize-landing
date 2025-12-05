@@ -288,91 +288,274 @@ function saveConversations() {
 }
 
 /**
+ * Render the conversation list for sidebar
+ */
+function renderConversationList() {
+    if (conversations.length === 0) {
+        return `
+            <div class="conversation-empty">
+                <p>No conversations yet</p>
+            </div>
+        `;
+    }
+
+    // Group by date
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+    const grouped = {
+        today: [],
+        yesterday: [],
+        older: []
+    };
+
+    conversations.forEach(conv => {
+        const convDate = new Date(conv.updatedAt || conv.createdAt).toDateString();
+        if (convDate === today) {
+            grouped.today.push(conv);
+        } else if (convDate === yesterday) {
+            grouped.yesterday.push(conv);
+        } else {
+            grouped.older.push(conv);
+        }
+    });
+
+    let html = '';
+
+    if (grouped.today.length > 0) {
+        html += `<div class="conversation-group-label">Today</div>`;
+        html += grouped.today.map(conv => renderConversationItem(conv)).join('');
+    }
+
+    if (grouped.yesterday.length > 0) {
+        html += `<div class="conversation-group-label">Yesterday</div>`;
+        html += grouped.yesterday.map(conv => renderConversationItem(conv)).join('');
+    }
+
+    if (grouped.older.length > 0) {
+        html += `<div class="conversation-group-label">Previous</div>`;
+        html += grouped.older.map(conv => renderConversationItem(conv)).join('');
+    }
+
+    return html;
+}
+
+/**
+ * Render a single conversation item
+ */
+function renderConversationItem(conv) {
+    const isActive = currentConversation && currentConversation.id === conv.id;
+    const title = conv.title || 'New Chat';
+    const truncatedTitle = title.length > 28 ? title.substring(0, 28) + '...' : title;
+
+    return `
+        <div class="conversation-item ${isActive ? 'active' : ''}" data-conv-id="${conv.id}">
+            <div class="conversation-item-content">
+                <span class="conversation-icon">💬</span>
+                <span class="conversation-title" title="${escapeHtml(title)}">${escapeHtml(truncatedTitle)}</span>
+            </div>
+            <div class="conversation-item-actions">
+                <button class="btn-delete-conv" data-conv-id="${conv.id}" title="Delete">×</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Update active conversation highlight
+ */
+function updateActiveConversation() {
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        if (item.dataset.convId === currentConversation?.id) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+/**
+ * Switch to a different conversation
+ */
+function switchConversation(convId) {
+    const conv = conversations.find(c => c.id === convId);
+    if (conv) {
+        currentConversation = conv;
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = renderMessages();
+        }
+        updateActiveConversation();
+        scrollToBottom();
+    }
+}
+
+/**
+ * Delete a conversation
+ */
+function deleteConversation(convId) {
+    const index = conversations.findIndex(c => c.id === convId);
+    if (index === -1) return;
+
+    conversations.splice(index, 1);
+    saveConversations();
+
+    if (currentConversation?.id === convId) {
+        if (conversations.length > 0) {
+            currentConversation = conversations[0];
+        } else {
+            createNewConversation();
+        }
+    }
+
+    const listContainer = document.getElementById('conversation-list');
+    if (listContainer) {
+        listContainer.innerHTML = renderConversationList();
+        setupConversationListeners();
+    }
+
+    const messagesContainer = document.getElementById('chat-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = renderMessages();
+    }
+
+    // Notify Mizzi
+    if (window.MizziWidget) {
+        window.MizziWidget.refreshStatus();
+    }
+}
+
+/**
+ * Setup conversation list click listeners
+ */
+function setupConversationListeners() {
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-delete-conv')) return;
+            switchConversation(item.dataset.convId);
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-conv').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const convId = btn.dataset.convId;
+            if (confirm('Delete this conversation?')) {
+                deleteConversation(convId);
+            }
+        });
+    });
+}
+
+/**
  * Render the chat view
  */
 export async function render(container, appState) {
-    currentAppState = appState; // Store for later use
+    currentAppState = appState;
     await initChat();
 
     container.innerHTML = `
-        <div class="chat-view">
-            <!-- Chat Header with Mode Toggle -->
-            <div class="chat-header">
-                <div class="mode-toggle-container">
-                    <div class="mode-toggle">
-                        <button class="mode-option ${chatMode === 'fast' ? 'active' : ''}" data-mode="fast">
-                            ⚡ Fast
-                        </button>
-                        <button class="mode-option ${chatMode === 'mission' ? 'active' : ''}" data-mode="mission">
-                            🔒 Mission Mode
-                        </button>
+        <div class="chat-layout">
+            <!-- Conversation Sidebar -->
+            <aside class="conversation-sidebar" id="conversation-sidebar">
+                <div class="sidebar-section-header">
+                    <button class="btn-new-chat" id="btn-new-chat">
+                        <span class="btn-icon">✏️</span>
+                        <span>New Chat</span>
+                    </button>
+                </div>
+                <div class="conversation-list" id="conversation-list">
+                    ${renderConversationList()}
+                </div>
+                <div class="sidebar-footer">
+                    <button class="btn-clear-all" id="btn-clear-all" title="Delete all chats">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Sidebar Toggle (for mobile/collapsed state) -->
+            <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle conversations">
+                <span>☰</span>
+            </button>
+
+            <!-- Main Chat Area -->
+            <div class="chat-main">
+                <!-- Chat Header with Mode Toggle -->
+                <div class="chat-header">
+                    <div class="mode-toggle-container">
+                        <div class="mode-toggle">
+                            <button class="mode-option ${chatMode === 'fast' ? 'active' : ''}" data-mode="fast">
+                                ⚡ Fast
+                            </button>
+                            <button class="mode-option ${chatMode === 'mission' ? 'active' : ''}" data-mode="mission">
+                                🔒 Mission Mode
+                            </button>
+                        </div>
+                        <span class="mode-description">
+                            ${chatMode === 'fast' ? 'Quick responses, no evidence' : 'Full consensus + cryptographic proof'}
+                        </span>
                     </div>
-                    <span style="font-size: 0.75rem; color: var(--color-text-muted);">
-                        ${chatMode === 'fast' ? 'Quick responses, no evidence' : 'Full consensus + cryptographic proof'}
-                    </span>
-                </div>
-                <div class="model-selector-container">
-                    <label class="model-selector-label">Model:</label>
-                    <select id="model-selector" class="model-selector">
-                        ${MODELS.map(model => `
-                            <option value="${model.id}" ${model.id === selectedModel ? 'selected' : ''}>
-                                ${model.name}${model.provider ? ` (${model.provider})` : ''}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-                <button class="btn btn-secondary" id="new-chat-btn">
-                    <span>+ New Chat</span>
-                </button>
-            </div>
-
-            <!-- Messages Container -->
-            <div class="chat-messages" id="chat-messages">
-                ${renderMessages()}
-            </div>
-
-            <!-- Input Container -->
-            <div class="chat-input-container">
-                <!-- Demo Scenarios -->
-                <div class="demo-scenarios-container">
-                    <label class="demo-scenarios-label">🎯 Demo Scenarios</label>
-                    <select class="demo-scenarios-select" id="demo-scenarios-select">
-                        <option value="">Choose a scenario...</option>
-                        ${DEMO_SCENARIOS.map(scenario => `
-                            <option value="${scenario.id}">${scenario.label}</option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <!-- Attached Files -->
-                <div class="attached-files" id="attached-files">
-                    ${renderAttachedFiles()}
-                </div>
-
-                <!-- Drag-drop overlay -->
-                <div class="drag-drop-overlay" id="drag-drop-overlay" style="display: none;">
-                    <div class="drag-drop-message">
-                        <div class="drag-drop-icon">📎</div>
-                        <div>Drop files here to attach</div>
+                    <div class="model-selector-container">
+                        <label class="model-selector-label">Model:</label>
+                        <select id="model-selector" class="model-selector">
+                            ${MODELS.map(model => `
+                                <option value="${model.id}" ${model.id === selectedModel ? 'selected' : ''}>
+                                    ${model.name}${model.provider ? ` (${model.provider})` : ''}
+                                </option>
+                            `).join('')}
+                        </select>
                     </div>
                 </div>
 
-                <!-- Input Area -->
-                <div class="chat-input-wrapper">
-                    <button class="btn-icon" id="attach-file-btn" title="Attach file">
-                        <span>📎</span>
-                    </button>
-                    <textarea
-                        id="chat-input"
-                        class="chat-input"
-                        placeholder="Describe your mission..."
-                        rows="1"
-                    ></textarea>
-                    <button class="btn-icon btn-send" id="send-btn" title="Send message">
-                        <span>➤</span>
-                    </button>
+                <!-- Messages Container -->
+                <div class="chat-messages" id="chat-messages">
+                    ${renderMessages()}
                 </div>
-                <input type="file" id="file-input" style="display: none;" multiple>
+
+                <!-- Input Container -->
+                <div class="chat-input-container">
+                    <!-- Demo Scenarios -->
+                    <div class="demo-scenarios-container">
+                        <label class="demo-scenarios-label">🎯 Demo Scenarios</label>
+                        <select class="demo-scenarios-select" id="demo-scenarios-select">
+                            <option value="">Choose a scenario...</option>
+                            ${DEMO_SCENARIOS.map(scenario => `
+                                <option value="${scenario.id}">${scenario.label}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+
+                    <!-- Attached Files -->
+                    <div class="attached-files" id="attached-files">
+                        ${renderAttachedFiles()}
+                    </div>
+
+                    <!-- Drag-drop overlay -->
+                    <div class="drag-drop-overlay" id="drag-drop-overlay" style="display: none;">
+                        <div class="drag-drop-message">
+                            <div class="drag-drop-icon">📎</div>
+                            <div>Drop files here to attach</div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="chat-input-wrapper">
+                        <button class="btn-icon" id="attach-file-btn" title="Attach file">
+                            <span>📎</span>
+                        </button>
+                        <textarea
+                            id="chat-input"
+                            class="chat-input"
+                            placeholder="Describe your mission..."
+                            rows="1"
+                        ></textarea>
+                        <button class="btn-icon btn-send" id="send-btn" title="Send message">
+                            <span>➤</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input" style="display: none;" multiple>
+                </div>
             </div>
         </div>
 
@@ -394,8 +577,16 @@ export async function render(container, appState) {
     // Setup event listeners
     setupEventListeners(container, appState);
 
+    // Mark active conversation in sidebar
+    updateActiveConversation();
+
     // Scroll to bottom
     scrollToBottom();
+
+    // Update Mizzi widget mode display
+    if (window.MizziWidget) {
+        window.MizziWidget.updateModeDisplay();
+    }
 }
 
 /**
@@ -619,11 +810,54 @@ function setupEventListeners(container, appState) {
         localStorage.setItem('missionize_selected_model', selectedModel);
     });
 
-    // New chat button
-    newChatBtn.addEventListener('click', () => {
-        createNewConversation();
-        render(container, appState);
-    });
+    // Conversation sidebar listeners
+    setupConversationListeners();
+
+    // New Chat button in sidebar
+    const btnNewChat = document.getElementById('btn-new-chat');
+    if (btnNewChat) {
+        btnNewChat.addEventListener('click', () => {
+            createNewConversation();
+            const listContainer = document.getElementById('conversation-list');
+            if (listContainer) {
+                listContainer.innerHTML = renderConversationList();
+                setupConversationListeners();
+            }
+            const messagesContainer = document.getElementById('chat-messages');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = renderMessages();
+            }
+            updateActiveConversation();
+
+            // Notify Mizzi
+            if (window.MizziWidget) {
+                window.MizziWidget.refreshStatus();
+            }
+        });
+    }
+
+    // Clear all chats
+    const btnClearAll = document.getElementById('btn-clear-all');
+    if (btnClearAll) {
+        btnClearAll.addEventListener('click', () => {
+            if (confirm('Delete ALL conversations? This cannot be undone.')) {
+                conversations = [];
+                localStorage.removeItem('missionize_conversations');
+                createNewConversation();
+                render(container, appState);
+            }
+        });
+    }
+
+    // Sidebar toggle (for mobile)
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('conversation-sidebar');
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            sidebarToggle.classList.toggle('sidebar-open');
+        });
+    }
 
     // Drag and drop
     const inputContainer = container.querySelector('.chat-input-container');

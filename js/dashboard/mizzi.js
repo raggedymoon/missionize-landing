@@ -283,10 +283,12 @@ export async function refreshMizziData() {
 const MizziWidget = {
     isOpen: false,
     lastHealthCheck: null,
+    healthCheckInterval: null,
 
     init() {
         this.createWidget();
-        this.checkSystemHealth();
+        this.refreshStatus();
+        this.startHealthCheckInterval();
         console.log('[Mizzi Widget] Guardian Angel initialized');
     },
 
@@ -304,7 +306,12 @@ const MizziWidget = {
         const widget = document.createElement('div');
         widget.id = 'mizzi-widget';
         widget.className = 'mizzi-widget';
-        widget.innerHTML = `
+        widget.innerHTML = this.getWidgetHTML();
+        document.body.appendChild(widget);
+    },
+
+    getWidgetHTML() {
+        return `
             <div class="mizzi-header">
                 <div class="mizzi-title">
                     <span class="mizzi-icon">😇</span>
@@ -323,33 +330,42 @@ const MizziWidget = {
                         <span class="status-label">Mode</span>
                         <span class="status-badge" id="mizzi-current-mode">Fast</span>
                     </div>
+                    <div id="mizzi-chat-count" class="mizzi-status-item">
+                        <span class="status-label">Chats</span>
+                        <span class="status-badge" id="mizzi-chat-count-value">0</span>
+                    </div>
+                </div>
+                <div class="mizzi-mission-section" id="mizzi-mission-section" style="display: none;">
+                    <h5>Last Mission</h5>
+                    <div class="mizzi-mission-info">
+                        <div class="mission-status" id="mizzi-mission-status">No missions yet</div>
+                        <div class="mission-trust" id="mizzi-mission-trust" style="display: none;">
+                            Trust Score: <strong id="mizzi-trust-score">-</strong>
+                        </div>
+                    </div>
                 </div>
                 <div class="mizzi-tips-section">
-                    <h5>Quick Tips</h5>
-                    <div class="mizzi-tip">
-                        <span class="tip-icon">💡</span>
-                        <span class="tip-text">Use <strong>Mission Mode</strong> for high-stakes questions requiring consensus</span>
-                    </div>
-                    <div class="mizzi-tip">
-                        <span class="tip-icon">🔍</span>
-                        <span class="tip-text">Click <strong>View Evidence</strong> to see cryptographic proof</span>
-                    </div>
-                    <div class="mizzi-tip">
-                        <span class="tip-icon">⚡</span>
-                        <span class="tip-text"><strong>Fast Mode</strong> is perfect for quick queries and code help</span>
+                    <h5>💡 Tip</h5>
+                    <div class="mizzi-tip" id="mizzi-contextual-tip">
+                        <span class="tip-text">Loading...</span>
                     </div>
                 </div>
                 <div class="mizzi-actions">
-                    <button onclick="MizziWidget.switchToMissionMode()" class="mizzi-action-btn">
-                        🚀 Try Mission Mode
+                    <button onclick="MizziWidget.newChat()" class="mizzi-action-btn">
+                        ✏️ New Chat
+                    </button>
+                    <button onclick="MizziWidget.toggleMode()" class="mizzi-action-btn" id="mizzi-mode-toggle-btn">
+                        🔒 Mission Mode
+                    </button>
+                    <button onclick="MizziWidget.goToEvidence()" class="mizzi-action-btn">
+                        🔍 Evidence
                     </button>
                     <button onclick="MizziWidget.openDevTools()" class="mizzi-action-btn">
-                        🛠️ Open DevTools
+                        🛠️ DevTools
                     </button>
                 </div>
             </div>
         `;
-        document.body.appendChild(widget);
     },
 
     toggle() {
@@ -360,19 +376,34 @@ const MizziWidget = {
         if (this.isOpen) {
             widget.classList.add('open');
             fab.style.opacity = '0';
-            this.checkSystemHealth();
+            this.refreshStatus();
         } else {
             widget.classList.remove('open');
             fab.style.opacity = '1';
         }
     },
 
+    async refreshStatus() {
+        await this.checkSystemHealth();
+        this.updateModeDisplay();
+        this.updateChatCount();
+        await this.getLastMissionStatus();
+        this.updateContextualTip();
+    },
+
     async checkSystemHealth() {
         const statusEl = document.getElementById('mizzi-api-status');
+        if (!statusEl) return;
+
         const badge = statusEl.querySelector('.status-badge');
 
         try {
-            const response = await fetch('https://api.missionize.ai/health');
+            const baseUrl = localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+            const response = await fetch(`${baseUrl}/health`, {
+                headers: {
+                    'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+                }
+            });
             if (response.ok) {
                 badge.className = 'status-badge healthy';
                 badge.textContent = '✓ Online';
@@ -387,20 +418,152 @@ const MizziWidget = {
         }
     },
 
-    switchToMissionMode() {
-        // Find mode toggle buttons and switch to Mission Mode
-        const missionBtn = document.querySelector('.mode-option[data-mode="mission"]');
-        if (missionBtn && !missionBtn.classList.contains('active')) {
-            missionBtn.click();
+    updateModeDisplay() {
+        const modeEl = document.getElementById('mizzi-current-mode');
+        const toggleBtn = document.getElementById('mizzi-mode-toggle-btn');
+        if (!modeEl) return;
+
+        // Check current mode from chat
+        const chatMode = localStorage.getItem('missionize_chat_mode') || 'fast';
+
+        if (chatMode === 'mission') {
+            modeEl.textContent = '🔒 Mission';
+            modeEl.className = 'status-badge mission-mode';
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '⚡ Fast Mode';
+            }
+        } else {
+            modeEl.textContent = '⚡ Fast';
+            modeEl.className = 'status-badge fast-mode';
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '🔒 Mission Mode';
+            }
         }
-        this.toggle(); // Close Mizzi
+    },
+
+    updateChatCount() {
+        const countEl = document.getElementById('mizzi-chat-count-value');
+        if (!countEl) return;
+
+        const count = this.getChatCount();
+        countEl.textContent = count;
+    },
+
+    getChatCount() {
+        try {
+            const conversations = JSON.parse(localStorage.getItem('missionize_conversations') || '[]');
+            return conversations.length;
+        } catch {
+            return 0;
+        }
+    },
+
+    async getLastMissionStatus() {
+        const sectionEl = document.getElementById('mizzi-mission-section');
+        const statusEl = document.getElementById('mizzi-mission-status');
+        const trustEl = document.getElementById('mizzi-mission-trust');
+        const trustScoreEl = document.getElementById('mizzi-trust-score');
+
+        if (!sectionEl || !statusEl) return;
+
+        try {
+            // Try to get last mission from history
+            const baseUrl = localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai';
+            const response = await fetch(`${baseUrl}/api/missions/history?limit=1`, {
+                headers: {
+                    'X-API-Key': localStorage.getItem('missionize_api_key') || ''
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.missions && data.missions.length > 0) {
+                    const mission = data.missions[0];
+                    sectionEl.style.display = 'block';
+                    statusEl.textContent = `${mission.id}: ${mission.status}`;
+
+                    if (mission.trust_score !== undefined && mission.trust_score !== null) {
+                        trustEl.style.display = 'block';
+                        trustScoreEl.textContent = `${(mission.trust_score * 100).toFixed(0)}%`;
+                    } else {
+                        trustEl.style.display = 'none';
+                    }
+                } else {
+                    sectionEl.style.display = 'none';
+                }
+            } else {
+                sectionEl.style.display = 'none';
+            }
+        } catch (e) {
+            sectionEl.style.display = 'none';
+        }
+    },
+
+    updateContextualTip() {
+        const tipEl = document.getElementById('mizzi-contextual-tip');
+        if (!tipEl) return;
+
+        const tip = this.getContextualTip();
+        tipEl.innerHTML = `<span class="tip-text">${tip}</span>`;
+    },
+
+    getContextualTip() {
+        const chatMode = localStorage.getItem('missionize_chat_mode') || 'fast';
+        const chatCount = this.getChatCount();
+
+        // Contextual tips based on state
+        if (chatCount === 0) {
+            return 'Welcome! Start by asking a question in <strong>Fast Mode</strong> for quick responses.';
+        } else if (chatMode === 'fast' && chatCount >= 3) {
+            return 'Try <strong>Mission Mode</strong> for high-stakes decisions with cryptographic proof and multi-agent consensus.';
+        } else if (chatMode === 'mission') {
+            return 'Mission Mode active! You\'ll get evidence envelopes with trust scores. Click <strong>View Evidence</strong> after responses.';
+        } else {
+            return 'Use <strong>Fast Mode</strong> for quick queries, <strong>Mission Mode</strong> for critical decisions requiring proof.';
+        }
+    },
+
+    startHealthCheckInterval() {
+        // Auto-refresh health every 30 seconds
+        this.healthCheckInterval = setInterval(() => {
+            if (this.isOpen) {
+                this.checkSystemHealth();
+            }
+        }, 30000);
+    },
+
+    // Quick Actions
+    newChat() {
+        const btnNewChat = document.getElementById('btn-new-chat');
+        if (btnNewChat) {
+            btnNewChat.click();
+        }
+        this.toggle();
+    },
+
+    toggleMode() {
+        const chatMode = localStorage.getItem('missionize_chat_mode') || 'fast';
+        const targetMode = chatMode === 'fast' ? 'mission' : 'fast';
+        const modeBtn = document.querySelector(`.mode-option[data-mode="${targetMode}"]`);
+        if (modeBtn) {
+            modeBtn.click();
+        }
+        this.toggle();
+    },
+
+    goToEvidence() {
+        const evidenceTab = document.querySelector('.nav-tab[data-view="evidence"]');
+        if (evidenceTab) {
+            evidenceTab.click();
+        }
+        this.toggle();
     },
 
     openDevTools() {
         if (window.DevTools) {
             DevTools.toggle();
         }
-        this.toggle(); // Close Mizzi
+        this.toggle();
     }
 };
 

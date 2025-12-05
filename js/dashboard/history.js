@@ -3,66 +3,6 @@
  * Displays completed missions in a table format
  */
 
-// Mock data - replace with real API calls later
-const mockHistoryMissions = [
-    {
-        id: 'M-0003',
-        summary: 'Generate market analysis report',
-        status: 'completed',
-        mode: 'Enterprise',
-        duration: '15m 32s',
-        timestamp: new Date(Date.now() - 30 * 60000).toISOString()
-    },
-    {
-        id: 'M-0005',
-        summary: 'Process bulk data transformation',
-        status: 'failed',
-        mode: 'Fast',
-        duration: '5m 12s',
-        timestamp: new Date(Date.now() - 60 * 60000).toISOString()
-    },
-    {
-        id: 'M-0006',
-        summary: 'Customer churn prediction analysis',
-        status: 'completed',
-        mode: 'Standard',
-        duration: '8m 45s',
-        timestamp: new Date(Date.now() - 120 * 60000).toISOString()
-    },
-    {
-        id: 'M-0007',
-        summary: 'Quarterly financial forecasting',
-        status: 'completed',
-        mode: 'Enterprise',
-        duration: '22m 18s',
-        timestamp: new Date(Date.now() - 180 * 60000).toISOString()
-    },
-    {
-        id: 'M-0008',
-        summary: 'Competitor pricing analysis',
-        status: 'completed',
-        mode: 'Standard',
-        duration: '12m 05s',
-        timestamp: new Date(Date.now() - 240 * 60000).toISOString()
-    },
-    {
-        id: 'M-0009',
-        summary: 'Email campaign effectiveness review',
-        status: 'failed',
-        mode: 'Fast',
-        duration: '3m 22s',
-        timestamp: new Date(Date.now() - 300 * 60000).toISOString()
-    },
-    {
-        id: 'M-0010',
-        summary: 'Product roadmap validation',
-        status: 'completed',
-        mode: 'Standard',
-        duration: '18m 41s',
-        timestamp: new Date(Date.now() - 360 * 60000).toISOString()
-    }
-];
-
 let selectedHistoryMission = null;
 
 /**
@@ -76,15 +16,19 @@ async function fetchHistoryData(appState) {
                 'X-API-Key': localStorage.getItem('missionize_api_key') || ''
             }
         });
-        
+
         if (!response.ok) {
-            console.warn('History API returned error, using mock data');
-            return mockHistoryMissions;
+            console.warn('History API returned error, no missions to display');
+            return [];
         }
-        
+
         const data = await response.json();
-        
+
         // Transform API response to match frontend format
+        if (!data.missions || data.missions.length === 0) {
+            return [];
+        }
+
         return data.missions.map(m => ({
             id: m.id,
             summary: m.summary,
@@ -94,8 +38,8 @@ async function fetchHistoryData(appState) {
             timestamp: m.last_update || m.submitted_at
         }));
     } catch (error) {
-        console.warn('Failed to fetch history data, using mock:', error.message);
-        return mockHistoryMissions;
+        console.warn('Failed to fetch history data:', error.message);
+        return [];
     }
 }
 
@@ -117,6 +61,28 @@ function calculateDuration(start, end) {
  */
 export async function render(container, appState) {
     const missions = await fetchHistoryData(appState);
+
+    // Show empty state if no missions
+    if (missions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📜</div>
+                <h3 class="empty-state-title">No Mission History Yet</h3>
+                <p class="empty-state-description">
+                    Your completed missions will appear here. Start using <strong>Mission Mode</strong> in the chat to run missions through the full consensus engine with cryptographic evidence.
+                </p>
+                <div class="empty-state-actions">
+                    <button class="btn btn-primary" onclick="document.querySelector('.nav-tab[data-view=\\'chat\\']').click()">
+                        Go to Chat
+                    </button>
+                    <button class="btn btn-secondary" onclick="alert('Mission Mode provides:\\n\\n✓ Multi-agent consensus\\n✓ Cryptographic proof (PEV)\\n✓ Trust scores\\n✓ Evidence envelopes\\n\\nSwitch to Mission Mode in the chat to try it!')">
+                        Learn More
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
 
     container.innerHTML = `
         <table class="history-table">

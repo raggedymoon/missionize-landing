@@ -812,6 +812,245 @@ body {
     max-height: calc(100vh - 70px - 4rem);
 }
 
+/* Chat Layout with Conversation Sidebar */
+.chat-layout {
+    display: flex;
+    height: calc(100vh - 70px - 4rem);
+    gap: 0;
+}
+
+/* Conversation Sidebar */
+.conversation-sidebar {
+    width: 260px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.conversation-sidebar.collapsed {
+    width: 0;
+    transform: translateX(-100%);
+}
+
+.sidebar-section-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.btn-new-chat {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--color-primary);
+    color: var(--color-bg);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-new-chat:hover {
+    background: var(--color-primary-hover);
+}
+
+.conversation-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.conversation-group-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    padding: 0.75rem 0.75rem 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.conversation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 0.25rem;
+    border-left: 3px solid transparent;
+}
+
+.conversation-item:hover {
+    background: var(--color-bg-tertiary);
+}
+
+.conversation-item.active {
+    background: var(--color-bg-tertiary);
+    border-left-color: var(--color-primary);
+}
+
+.conversation-item-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.conversation-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.conversation-title {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conversation-item-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.conversation-item:hover .conversation-item-actions {
+    opacity: 1;
+}
+
+.btn-delete-conv {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.btn-delete-conv:hover {
+    color: var(--color-error);
+}
+
+.sidebar-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.btn-clear-all {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-clear-all:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.conversation-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+/* Sidebar Toggle Button (Mobile) */
+.sidebar-toggle {
+    display: none; /* Hidden by default, shown on mobile */
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary);
+    border: none;
+    border-radius: 50%;
+    color: var(--color-bg);
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+    transform: scale(1.1);
+}
+
+.sidebar-toggle.sidebar-open {
+    left: 270px;
+}
+
+/* Chat Main Area */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Empty State (for History, Evidence, etc.) */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.4;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 0.75rem;
+}
+
+.empty-state-description {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    max-width: 500px;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.empty-state-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
 .chat-header {
     display: flex;
     justify-content: space-between;
@@ -2466,4 +2705,57 @@ body {
     border-color: var(--color-primary);
     color: var(--color-primary);
     transform: translateX(2px);
+}
+
+/* Mizzi Mission Section */
+.mizzi-mission-section {
+    margin-bottom: 1.5rem;
+}
+
+.mizzi-mission-section h5 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.mizzi-mission-info {
+    padding: 0.75rem;
+    background: var(--color-bg-tertiary);
+    border-radius: 6px;
+}
+
+.mission-status {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.mission-trust {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+#mizzi-trust-score {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Mizzi Mode-Specific Status Badges */
+.status-badge.fast-mode {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.status-badge.mission-mode {
+    background: rgba(168, 85, 247, 0.2);
+    color: #a855f7;
+}
+
+/* Mode Description */
+.mode-description {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
 }
