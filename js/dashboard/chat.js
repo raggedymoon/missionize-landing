@@ -82,6 +82,83 @@ function stopMissionProgress() {
     }
 }
 
+/**
+ * Detect the best model based on message content
+ * @param {string} message - User's message
+ * @returns {Object} { model: string, reason: string, suggestMission: boolean }
+ */
+function detectBestModel(message) {
+    const lowerMsg = message.toLowerCase();
+
+    // Code tasks → Claude Sonnet (best for code)
+    if (/\b(code|function|debug|error|script|programming|api|sql|python|javascript|typescript|react|html|css|bug|fix)\b/.test(lowerMsg)) {
+        return { model: 'claude-sonnet-4', reason: 'Code task detected', suggestMission: false };
+    }
+
+    // Math/Logic → GPT-4o (strong reasoning)
+    if (/\b(calculate|math|equation|solve|proof|logic|algorithm|formula)\b/.test(lowerMsg)) {
+        return { model: 'gpt-4o', reason: 'Math/logic task', suggestMission: false };
+    }
+
+    // Creative writing → Claude Sonnet
+    if (/\b(write|story|creative|poem|essay|blog|article|draft|rewrite)\b/.test(lowerMsg)) {
+        return { model: 'claude-sonnet-4', reason: 'Creative task', suggestMission: false };
+    }
+
+    // High-stakes topics → Suggest Mission Mode
+    if (/\b(invest|stock|financial|medical|health|diagnosis|legal|lawsuit|contract|compliance|hipaa|security)\b/.test(lowerMsg)) {
+        return { model: 'gpt-4o-mini', reason: 'High-stakes topic', suggestMission: true };
+    }
+
+    // Analysis/Research → GPT-4o
+    if (/\b(analyze|research|compare|evaluate|assess|review|summarize)\b/.test(lowerMsg)) {
+        return { model: 'gpt-4o', reason: 'Analysis task', suggestMission: false };
+    }
+
+    // Default → GPT-4o Mini (fast, cheap)
+    return { model: 'gpt-4o-mini', reason: 'General query', suggestMission: false };
+}
+
+/**
+ * Show a subtle model suggestion banner
+ * @param {Object} suggestion - From detectBestModel()
+ */
+function showModelSuggestion(suggestion) {
+    // Remove any existing suggestion
+    const existing = document.querySelector('.model-suggestion');
+    if (existing) existing.remove();
+
+    // Don't show if already on suggested model
+    const currentModel = document.querySelector('#model-selector')?.value;
+    if (currentModel === suggestion.model && !suggestion.suggestMission) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'model-suggestion';
+    banner.innerHTML = `
+        <span class="suggestion-icon">💡</span>
+        <span class="suggestion-text">
+            ${suggestion.suggestMission
+                ? `This looks like a high-stakes question. <button class="suggestion-btn" onclick="switchToMissionMode()">Switch to Mission Mode</button> for verified answers.`
+                : `Tip: <strong>${suggestion.model}</strong> may work better for this (${suggestion.reason}).`
+            }
+        </span>
+        <button class="suggestion-dismiss" onclick="this.parentElement.remove()">✕</button>
+    `;
+
+    const chatInput = document.querySelector('.chat-input-container');
+    if (chatInput) {
+        chatInput.insertAdjacentElement('beforebegin', banner);
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => banner.remove(), 10000);
+    }
+}
+
+function switchToMissionMode() {
+    const missionBtn = document.querySelector('[data-mode="mission"]');
+    if (missionBtn) missionBtn.click();
+    document.querySelector('.model-suggestion')?.remove();
+}
+
 // Available models (will be populated from backend)
 let MODELS = [
     // Fallback models if backend is unavailable
@@ -371,6 +448,7 @@ function renderMessage(msg) {
                     ${msg.files.map(file => `<span class="file-chip">📎 ${file.name}</span>`).join('')}
                 </div>
             ` : ''}
+            ${!isUser && msg.evidenceData?.trust_score ? renderTrustBadge(msg.evidenceData.trust_score) : ''}
             ${!isUser && msg.evidenceData ? renderMiniPipeline(msg.evidenceData.agent_decisions) : ''}
             ${!isUser && msg.evidenceData ? renderEvidencePanel(msg) : ''}
             ${!isUser && msg.mizziStatus && !msg.evidenceData ? renderMizziStatus(msg) : ''}
@@ -702,6 +780,16 @@ async function sendMessage(appState) {
 
     saveConversations();
 
+    // Smart model suggestion (only in Fast mode)
+    if (chatMode === 'fast') {
+        const suggestion = detectBestModel(message);
+        const currentModelSelector = document.querySelector('#model-selector');
+        const currentModelValue = currentModelSelector?.value || selectedModel;
+        if (suggestion.suggestMission || suggestion.model !== currentModelValue) {
+            showModelSuggestion(suggestion);
+        }
+    }
+
     // Clear input
     chatInput.value = '';
     chatInput.style.height = 'auto';
@@ -1008,6 +1096,30 @@ function formatBlockedResponse(response) {
         <ul class="blocked-issues-list">${issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
         <div class="blocked-explanation"><strong>Try:</strong> Add more context, break into smaller steps, or check the evidence panel below.</div>
     </div>`;
+}
+
+/**
+ * Render a trust score badge with color coding
+ * @param {number} trustScore - Trust score 0-1
+ * @returns {string} HTML for trust badge
+ */
+function renderTrustBadge(trustScore) {
+    if (trustScore === null || trustScore === undefined) return '';
+
+    const percentage = Math.round(trustScore * 100);
+    let colorClass = 'trust-high';
+    let icon = '🟢';
+
+    if (percentage < 80) {
+        colorClass = 'trust-medium';
+        icon = '🟡';
+    }
+    if (percentage < 60) {
+        colorClass = 'trust-low';
+        icon = '🔴';
+    }
+
+    return `<span class="trust-badge ${colorClass}" title="Trust Score: How confident the consensus engine is">${icon} ${percentage}% Trust</span>`;
 }
 
 /**

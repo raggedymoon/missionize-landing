@@ -1910,3 +1910,89 @@ body {
     text-align: right;
     flex-shrink: 0;
 }
+
+/* WOW PACK V3 - Trust Badge */
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.trust-badge.trust-high {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.trust-badge.trust-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.trust-badge.trust-low {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* WOW PACK V3 - Model Suggestion Banner */
+.model-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(59, 130, 246, 0.1));
+    border: 1px solid rgba(0, 212, 170, 0.3);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.suggestion-icon {
+    font-size: 1.1rem;
+}
+
+.suggestion-text {
+    flex: 1;
+}
+
+.suggestion-btn {
+    background: var(--color-primary);
+    color: #000;
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.suggestion-btn:hover {
+    filter: brightness(1.1);
+}
+
+.suggestion-dismiss {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+}
+
+.suggestion-dismiss:hover {
+    color: var(--color-text);
+}
