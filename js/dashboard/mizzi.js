@@ -272,3 +272,144 @@ export async function refreshMizziData() {
     const events = await fetchMizziEvents({ apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai' });
     return { status, events };
 }
+
+/**
+ * =======================================================================
+ * MIZZI SIDECAR WIDGET (WOW PACK V3)
+ * Floating Guardian Angel assistant with system status and quick tips
+ * =======================================================================
+ */
+
+const MizziWidget = {
+    isOpen: false,
+    lastHealthCheck: null,
+
+    init() {
+        this.createWidget();
+        this.checkSystemHealth();
+        console.log('[Mizzi Widget] Guardian Angel initialized');
+    },
+
+    createWidget() {
+        // Create FAB button
+        const fab = document.createElement('button');
+        fab.id = 'mizzi-fab';
+        fab.className = 'mizzi-fab';
+        fab.innerHTML = '😇';
+        fab.title = 'Mizzi - Your Guardian Angel';
+        fab.onclick = () => this.toggle();
+        document.body.appendChild(fab);
+
+        // Create widget panel
+        const widget = document.createElement('div');
+        widget.id = 'mizzi-widget';
+        widget.className = 'mizzi-widget';
+        widget.innerHTML = `
+            <div class="mizzi-header">
+                <div class="mizzi-title">
+                    <span class="mizzi-icon">😇</span>
+                    <span>Mizzi</span>
+                </div>
+                <button class="mizzi-close" onclick="MizziWidget.toggle()">✕</button>
+            </div>
+            <div class="mizzi-content">
+                <div class="mizzi-status-section">
+                    <h5>System Status</h5>
+                    <div id="mizzi-api-status" class="mizzi-status-item">
+                        <span class="status-label">API</span>
+                        <span class="status-badge loading">Checking...</span>
+                    </div>
+                    <div id="mizzi-mode-status" class="mizzi-status-item">
+                        <span class="status-label">Mode</span>
+                        <span class="status-badge" id="mizzi-current-mode">Fast</span>
+                    </div>
+                </div>
+                <div class="mizzi-tips-section">
+                    <h5>Quick Tips</h5>
+                    <div class="mizzi-tip">
+                        <span class="tip-icon">💡</span>
+                        <span class="tip-text">Use <strong>Mission Mode</strong> for high-stakes questions requiring consensus</span>
+                    </div>
+                    <div class="mizzi-tip">
+                        <span class="tip-icon">🔍</span>
+                        <span class="tip-text">Click <strong>View Evidence</strong> to see cryptographic proof</span>
+                    </div>
+                    <div class="mizzi-tip">
+                        <span class="tip-icon">⚡</span>
+                        <span class="tip-text"><strong>Fast Mode</strong> is perfect for quick queries and code help</span>
+                    </div>
+                </div>
+                <div class="mizzi-actions">
+                    <button onclick="MizziWidget.switchToMissionMode()" class="mizzi-action-btn">
+                        🚀 Try Mission Mode
+                    </button>
+                    <button onclick="MizziWidget.openDevTools()" class="mizzi-action-btn">
+                        🛠️ Open DevTools
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(widget);
+    },
+
+    toggle() {
+        this.isOpen = !this.isOpen;
+        const widget = document.getElementById('mizzi-widget');
+        const fab = document.getElementById('mizzi-fab');
+
+        if (this.isOpen) {
+            widget.classList.add('open');
+            fab.style.opacity = '0';
+            this.checkSystemHealth();
+        } else {
+            widget.classList.remove('open');
+            fab.style.opacity = '1';
+        }
+    },
+
+    async checkSystemHealth() {
+        const statusEl = document.getElementById('mizzi-api-status');
+        const badge = statusEl.querySelector('.status-badge');
+
+        try {
+            const response = await fetch('https://api.missionize.ai/health');
+            if (response.ok) {
+                badge.className = 'status-badge healthy';
+                badge.textContent = '✓ Online';
+            } else {
+                badge.className = 'status-badge degraded';
+                badge.textContent = '⚠ Degraded';
+            }
+            this.lastHealthCheck = new Date();
+        } catch (e) {
+            badge.className = 'status-badge unhealthy';
+            badge.textContent = '✕ Offline';
+        }
+    },
+
+    switchToMissionMode() {
+        // Find mode toggle buttons and switch to Mission Mode
+        const missionBtn = document.querySelector('.mode-option[data-mode="mission"]');
+        if (missionBtn && !missionBtn.classList.contains('active')) {
+            missionBtn.click();
+        }
+        this.toggle(); // Close Mizzi
+    },
+
+    openDevTools() {
+        if (window.DevTools) {
+            DevTools.toggle();
+        }
+        this.toggle(); // Close Mizzi
+    }
+};
+
+// Auto-init Mizzi Widget when DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => MizziWidget.init());
+} else {
+    MizziWidget.init();
+}
+
+// Expose globally for inline onclick handlers
+window.MizziWidget = MizziWidget;
