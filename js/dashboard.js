@@ -69,13 +69,15 @@ function initDashboard() {
  */
 function setupThemeToggle() {
     const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-toggle-icon');
+    const darkIcon = document.getElementById('theme-icon-dark');
+    const lightIcon = document.getElementById('theme-icon-light');
 
     // Load saved theme preference
     const savedTheme = localStorage.getItem('missionize_theme') || 'dark';
     if (savedTheme === 'light') {
         document.body.classList.add('light-mode');
-        themeIcon.textContent = '☀️';
+        if (darkIcon) darkIcon.style.display = 'none';
+        if (lightIcon) lightIcon.style.display = 'block';
 
         // Set correct logo for light mode
         const logoImg = document.querySelector('.logo-image');
@@ -89,8 +91,9 @@ function setupThemeToggle() {
         themeToggle.addEventListener('click', () => {
             const isLightMode = document.body.classList.toggle('light-mode');
 
-            // Update icon
-            themeIcon.textContent = isLightMode ? '☀️' : '🌙';
+            // Update icons
+            if (darkIcon) darkIcon.style.display = isLightMode ? 'none' : 'block';
+            if (lightIcon) lightIcon.style.display = isLightMode ? 'block' : 'none';
 
             // Save preference
             localStorage.setItem('missionize_theme', isLightMode ? 'light' : 'dark');
