@@ -39,10 +39,10 @@ export async function postJson(path, body, appState) {
         'Content-Type': 'application/json'
     };
 
-    // Add API key if available
+    // Add API key if available (Missionize uses X-API-Key header)
     const apiKey = getApiKey();
     if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
+        headers['X-API-Key'] = apiKey;
     }
 
     try {
@@ -87,10 +87,10 @@ export async function getJson(path, appState) {
 
     const headers = {};
 
-    // Add API key if available
+    // Add API key if available (Missionize uses X-API-Key header)
     const apiKey = getApiKey();
     if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
+        headers['X-API-Key'] = apiKey;
     }
 
     try {
