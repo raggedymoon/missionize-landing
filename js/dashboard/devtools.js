@@ -21,7 +21,7 @@ const DevTools = {
         panel.innerHTML = `
             <div class="devtools-header">
                 <span>🛠️ DevTools</span>
-                <button class="devtools-close" onclick="DevTools.toggle()">✕</button>
+                <button class="devtools-close" data-action="devtools-toggle">✕</button>
             </div>
             <div class="devtools-content">
                 <div class="devtools-section">
@@ -33,9 +33,9 @@ const DevTools = {
                 <div class="devtools-section">
                     <h4>Quick Actions</h4>
                     <div class="devtools-actions">
-                        <button onclick="DevTools.checkHealth()">🔄 Check API</button>
-                        <button onclick="DevTools.clearStorage()">🗑️ Clear Storage</button>
-                        <button onclick="DevTools.exportLogs()">📥 Export Logs</button>
+                        <button data-action="devtools-checkHealth">🔄 Check API</button>
+                        <button data-action="devtools-clearStorage">🗑️ Clear Storage</button>
+                        <button data-action="devtools-exportLogs">📥 Export Logs</button>
                     </div>
                 </div>
                 <div class="devtools-section">
@@ -56,7 +56,7 @@ const DevTools = {
         toggle.className = 'devtools-toggle';
         toggle.innerHTML = '🛠️';
         toggle.title = 'Open DevTools';
-        toggle.onclick = () => this.toggle();
+        toggle.setAttribute('data-action', 'devtools-toggle');
         document.body.appendChild(toggle);
 
         this.checkHealth();
@@ -196,3 +196,24 @@ if (document.readyState === 'loading') {
 } else {
     DevTools.init();
 }
+
+// Event delegation for DevTools actions
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    switch (action) {
+        case 'devtools-toggle':
+            if (window.DevTools) DevTools.toggle();
+            break;
+        case 'devtools-checkHealth':
+            if (window.DevTools) DevTools.checkHealth();
+            break;
+        case 'devtools-clearStorage':
+            if (window.DevTools) DevTools.clearStorage();
+            break;
+        case 'devtools-exportLogs':
+            if (window.DevTools) DevTools.exportLogs();
+            break;
+    }
+});

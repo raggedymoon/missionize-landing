@@ -33,10 +33,10 @@
     <p class="subtitle">Comprehensive diagnostic tool for the dashboard chat system</p>
     
     <div style="margin-bottom: 20px;">
-        <button onclick="runFullDiagnostic()">🚀 Run Full Diagnostic</button>
-        <button onclick="testLiveChat()" class="secondary">💬 Test Live Chat</button>
-        <button onclick="clearLogs()" class="secondary">🗑️ Clear Logs</button>
-        <button onclick="clearLocalStorage()" class="secondary">🧹 Clear LocalStorage</button>
+        <button data-action="run-full-diagnostic">🚀 Run Full Diagnostic</button>
+        <button data-action="test-live-chat" class="secondary">💬 Test Live Chat</button>
+        <button data-action="clear-logs" class="secondary">🗑️ Clear Logs</button>
+        <button data-action="clear-local-storage" class="secondary">🧹 Clear LocalStorage</button>
     </div>
 
     <div class="section">
@@ -48,7 +48,7 @@
         <h2>💬 Interactive Chat Test</h2>
         <div class="test-chat">
             <input type="text" id="test-message" placeholder="Type a test message..." value="Say hello in exactly 5 words">
-            <button onclick="sendTestMessage()">Send</button>
+            <button data-action="send-test-message">Send</button>
         </div>
         <div class="response-box" id="chat-response">Response will appear here...</div>
     </div>
@@ -64,13 +64,6 @@
         const statusContainer = document.getElementById('system-status');
         const responseBox = document.getElementById('chat-response');
         
-        // Make functions globally available
-        window.runFullDiagnostic = runFullDiagnostic;
-        window.testLiveChat = testLiveChat;
-        window.clearLogs = clearLogs;
-        window.clearLocalStorage = clearLocalStorage;
-        window.sendTestMessage = sendTestMessage;
-
         function log(message, type = 'info') {
             const time = new Date().toLocaleTimeString();
             const typeClass = type;
@@ -377,6 +370,32 @@
 
         // Auto-run on load
         log('Debug tool loaded. Click "Run Full Diagnostic" to start.', 'info');
+
+        // Event delegation for all click handlers
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            switch (action) {
+                case 'run-full-diagnostic':
+                    runFullDiagnostic();
+                    break;
+                case 'test-live-chat':
+                    testLiveChat();
+                    break;
+                case 'clear-logs':
+                    clearLogs();
+                    break;
+                case 'clear-local-storage':
+                    clearLocalStorage();
+                    break;
+                case 'send-test-message':
+                    sendTestMessage();
+                    break;
+            }
+        });
     </script>
 </body>
 </html>

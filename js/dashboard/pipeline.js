@@ -207,7 +207,7 @@ function showMissionDetails(mission) {
         <div class="mission-details">
             <div class="details-header">
                 <h3 class="details-title">${escapeHtml(mission.summary)}</h3>
-                <button class="details-close" onclick="this.closest('.mission-details').remove()">&times;</button>
+                <button class="details-close" data-action="close-details">&times;</button>
             </div>
             <div class="details-content">
                 <div class="detail-row">
@@ -246,8 +246,8 @@ function showMissionDetails(mission) {
                 </div>
             </div>
             <div class="details-actions">
-                <button class="btn btn-secondary" onclick="alert('View Evidence - Not implemented')">View Evidence</button>
-                <button class="btn btn-secondary" onclick="alert('View History - Not implemented')">View History</button>
+                <button class="btn btn-secondary" data-action="view-evidence">View Evidence</button>
+                <button class="btn btn-secondary" data-action="view-history">View History</button>
             </div>
         </div>
     `;
@@ -284,3 +284,19 @@ export async function refreshPipelineData() {
     // This would be called externally to refresh the view
     return await fetchPipelineData({ apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai' });
 }
+
+// Event delegation for dynamic button actions
+document.addEventListener('click', (e) => {
+    const action = e.target.dataset.action;
+
+    if (action === 'close-details') {
+        const detailsPanel = e.target.closest('.mission-details');
+        if (detailsPanel) {
+            detailsPanel.remove();
+        }
+    } else if (action === 'view-evidence') {
+        alert('View Evidence - Not implemented');
+    } else if (action === 'view-history') {
+        alert('View History - Not implemented');
+    }
+});

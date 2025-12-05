@@ -72,10 +72,10 @@ export async function render(container, appState) {
                     Your completed missions will appear here. Start using <strong>Mission Mode</strong> in the chat to run missions through the full consensus engine with cryptographic evidence.
                 </p>
                 <div class="empty-state-actions">
-                    <button class="btn btn-primary" onclick="document.querySelector('.nav-tab[data-view=\\'chat\\']').click()">
+                    <button class="btn btn-primary" data-action="go-to-chat">
                         Go to Chat
                     </button>
-                    <button class="btn btn-secondary" onclick="alert('Mission Mode provides:\\n\\n✓ Multi-agent consensus\\n✓ Cryptographic proof (PEV)\\n✓ Trust scores\\n✓ Evidence envelopes\\n\\nSwitch to Mission Mode in the chat to try it!')">
+                    <button class="btn btn-secondary" data-action="learn-more">
                         Learn More
                     </button>
                 </div>
@@ -147,7 +147,7 @@ function showHistoryDetails(mission) {
         <div class="mission-details" style="margin-top: 1.5rem;">
             <div class="details-header">
                 <h3 class="details-title">Mission Details: ${mission.id}</h3>
-                <button class="details-close" onclick="this.closest('.mission-details').remove()">&times;</button>
+                <button class="details-close" data-action="close-details">&times;</button>
             </div>
             <div class="details-content">
                 <div class="detail-row">
@@ -186,8 +186,8 @@ function showHistoryDetails(mission) {
                 </div>
             </div>
             <div class="details-actions">
-                <button class="btn btn-secondary" onclick="alert('View Full Report - Not implemented')">View Full Report</button>
-                <button class="btn btn-secondary" onclick="alert('Export Results - Not implemented')">Export Results</button>
+                <button class="btn btn-secondary" data-action="view-full-report">View Full Report</button>
+                <button class="btn btn-secondary" data-action="export-results">Export Results</button>
             </div>
         </div>
     `;
@@ -208,3 +208,35 @@ function escapeHtml(text) {
 export async function refreshHistoryData() {
     return await fetchHistoryData({ apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai' });
 }
+
+/**
+ * Event delegation for all data-action handlers
+ */
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+
+    switch (action) {
+        case 'go-to-chat':
+            document.querySelector('.nav-tab[data-view=\'chat\']')?.click();
+            break;
+
+        case 'learn-more':
+            alert('Mission Mode provides:\n\n✓ Multi-agent consensus\n✓ Cryptographic proof (PEV)\n✓ Trust scores\n✓ Evidence envelopes\n\nSwitch to Mission Mode in the chat to try it!');
+            break;
+
+        case 'close-details':
+            target.closest('.mission-details')?.remove();
+            break;
+
+        case 'view-full-report':
+            alert('View Full Report - Not implemented');
+            break;
+
+        case 'export-results':
+            alert('Export Results - Not implemented');
+            break;
+    }
+});

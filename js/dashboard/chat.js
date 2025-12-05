@@ -138,11 +138,11 @@ function showModelSuggestion(suggestion) {
         <span class="suggestion-icon">💡</span>
         <span class="suggestion-text">
             ${suggestion.suggestMission
-                ? `This looks like a high-stakes question. <button class="suggestion-btn" onclick="switchToMissionMode()">Switch to Mission Mode</button> for verified answers.`
+                ? `This looks like a high-stakes question. <button class="suggestion-btn" data-action="switch-to-mission-mode">Switch to Mission Mode</button> for verified answers.`
                 : `Tip: <strong>${suggestion.model}</strong> may work better for this (${suggestion.reason}).`
             }
         </span>
-        <button class="suggestion-dismiss" onclick="this.parentElement.remove()">✕</button>
+        <button class="suggestion-dismiss" data-action="dismiss-suggestion">✕</button>
     `;
 
     const chatInput = document.querySelector('.chat-input-container');
@@ -645,7 +645,7 @@ function renderMessage(msg) {
             ${!isUser && msg.mizziStatus && !msg.evidenceData ? renderMizziStatus(msg) : ''}
             ${!isUser && msg.evidenceHash && !msg.evidenceData ? `
                 <div class="message-evidence">
-                    <button class="btn-text" onclick="alert('Evidence: ${msg.evidenceHash}')">
+                    <button class="btn-text" data-action="view-evidence-hash" data-hash="${escapeHtml(msg.evidenceHash)}">
                         🔒 View Evidence
                     </button>
                 </div>
@@ -683,10 +683,10 @@ function renderMizziStatus(msg) {
             ` : ''}
             ${msg.missionId ? `
                 <div class="mission-actions">
-                    <button class="btn-text" onclick="window.switchViewToMission('${msg.missionId}')">
+                    <button class="btn-text" data-action="switch-view-to-mission" data-mission-id="${escapeHtml(msg.missionId)}">
                         View Mission
                     </button>
-                    <button class="btn-text" onclick="window.switchViewToEvidence('${msg.missionId}')">
+                    <button class="btn-text" data-action="switch-view-to-evidence" data-mission-id="${escapeHtml(msg.missionId)}">
                         View Evidence
                     </button>
                 </div>
@@ -709,7 +709,7 @@ function renderMessageContent(content) {
             <div class="code-block">
                 <div class="code-block-header">
                     <span class="code-language">${language}</span>
-                    <button class="btn-copy" onclick="copyToClipboard(\`${escapeForJs(code.trim())}\`)">
+                    <button class="btn-copy" data-action="copy-to-clipboard" data-code="${escapeHtml(code.trim())}">
                         Copy
                     </button>
                 </div>
@@ -757,7 +757,7 @@ function renderAttachedFiles() {
                     <span class="file-icon">📎</span>
                     <span class="file-name">${escapeHtml(file.name)}</span>
                     <span class="file-size">${formatFileSize(file.size)}</span>
-                    <button class="file-remove" onclick="window.removeFile(${index})" title="Remove">×</button>
+                    <button class="file-remove" data-action="remove-file" data-index="${index}" title="Remove">×</button>
                 </div>
             `).join('')}
         </div>
@@ -1537,7 +1537,7 @@ function renderEvidencePanel(msg) {
 
     return `
         <div class="evidence-panel" id="evidence-${msg.timestamp}">
-            <div class="evidence-header" onclick="window.toggleEvidence('${msg.timestamp}')">
+            <div class="evidence-header" data-action="toggle-evidence" data-timestamp="${escapeHtml(msg.timestamp)}">
                 <div class="evidence-title">
                     🔒 Cryptographic Evidence
                     <span class="evidence-expand-icon">▼</span>
@@ -1563,7 +1563,7 @@ function renderEvidencePanel(msg) {
                     <span class="evidence-label">Evidence Hash (SHA-256)</span>
                     <div class="evidence-hash-display">
                         <span class="evidence-hash-text">${evidence_hash ? evidence_hash.substring(0, 16) + '...' : 'N/A'}</span>
-                        ${evidence_hash ? `<button class="btn-copy-hash" onclick="window.copyHashToClipboard('${evidence_hash}')">Copy</button>` : ''}
+                        ${evidence_hash ? `<button class="btn-copy-hash" data-action="copy-hash-to-clipboard" data-hash="${escapeHtml(evidence_hash)}">Copy</button>` : ''}
                     </div>
                 </div>
                 <div class="evidence-row">
@@ -1572,7 +1572,7 @@ function renderEvidencePanel(msg) {
                 </div>
                 ${msg.evidenceData.agent_decisions ? `
                 <div style="margin-top: 1rem;">
-                    <button class="btn-show-trace" onclick="window.showBuildTrace(${escapeForJs(JSON.stringify(msg.evidenceData))})">
+                    <button class="btn-show-trace" data-action="show-build-trace" data-evidence="${escapeHtml(JSON.stringify(msg.evidenceData))}">
                         🔍 Show build trace
                     </button>
                 </div>
@@ -1731,3 +1731,111 @@ export function loadConversation(conversationId) {
     }
     return false;
 }
+
+/**
+ * Event delegation for all click handlers
+ * Replaces inline onclick handlers with secure data-action pattern
+ */
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+
+    switch (action) {
+        case 'switch-to-mission-mode':
+            switchToMissionMode();
+            break;
+
+        case 'dismiss-suggestion':
+            target.closest('.model-suggestion')?.remove();
+            break;
+
+        case 'view-evidence-hash':
+            {
+                const hash = target.dataset.hash;
+                alert(`Evidence: ${hash}`);
+            }
+            break;
+
+        case 'switch-view-to-mission':
+            {
+                const missionId = target.dataset.missionId;
+                if (window.switchViewToMission) {
+                    window.switchViewToMission(missionId);
+                }
+            }
+            break;
+
+        case 'switch-view-to-evidence':
+            {
+                const missionId = target.dataset.missionId;
+                if (window.switchViewToEvidence) {
+                    window.switchViewToEvidence(missionId);
+                }
+            }
+            break;
+
+        case 'copy-to-clipboard':
+            {
+                const code = target.dataset.code;
+                navigator.clipboard.writeText(code).then(() => {
+                    const originalText = target.textContent;
+                    target.textContent = 'Copied!';
+                    setTimeout(() => {
+                        target.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            }
+            break;
+
+        case 'remove-file':
+            {
+                const index = parseInt(target.dataset.index, 10);
+                if (window.removeFile) {
+                    window.removeFile(index);
+                } else {
+                    // Inline implementation if removeFile not available
+                    attachedFiles.splice(index, 1);
+                    document.getElementById('attached-files').innerHTML = renderAttachedFiles();
+                }
+            }
+            break;
+
+        case 'toggle-evidence':
+            {
+                const timestamp = target.dataset.timestamp;
+                const panel = document.getElementById(`evidence-${timestamp}`);
+                if (panel) {
+                    panel.classList.toggle('expanded');
+                }
+            }
+            break;
+
+        case 'copy-hash-to-clipboard':
+            {
+                const hash = target.dataset.hash;
+                navigator.clipboard.writeText(hash).then(() => {
+                    alert('Evidence hash copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy hash:', err);
+                    alert('Failed to copy hash. See console for details.');
+                });
+            }
+            break;
+
+        case 'show-build-trace':
+            {
+                const evidenceData = JSON.parse(target.dataset.evidence);
+                currentBuildTraceData = evidenceData;
+                populateBuildTrace(evidenceData.agent_decisions);
+                document.getElementById('build-trace-panel').classList.add('open');
+            }
+            break;
+
+        default:
+            console.warn(`[Chat] Unknown data-action: ${action}`);
+    }
+});

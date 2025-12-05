@@ -180,13 +180,13 @@ export async function render(container, appState) {
 
             <!-- Actions -->
             <div class="mizzi-actions">
-                <button class="btn btn-primary" onclick="handleMizziAction('diagnostics')">
+                <button class="btn btn-primary" data-action="mizzi-action" data-type="diagnostics">
                     Run Diagnostics
                 </button>
-                <button class="btn btn-secondary" onclick="handleMizziAction('logs')">
+                <button class="btn btn-secondary" data-action="mizzi-action" data-type="logs">
                     View Full Log
                 </button>
-                <button class="btn btn-secondary" onclick="handleMizziAction('settings')">
+                <button class="btn btn-secondary" data-action="mizzi-action" data-type="settings">
                     Mizzi Settings
                 </button>
             </div>
@@ -317,7 +317,7 @@ function showDiagnosticsResults(results) {
         <div class="diagnostics-content">
             <div class="diagnostics-header">
                 <h4>🔍 System Diagnostics</h4>
-                <button class="diagnostics-close" onclick="this.closest('.mizzi-diagnostics-modal').remove()">✕</button>
+                <button class="diagnostics-close" data-action="close-diagnostics-modal">✕</button>
             </div>
             <div class="diagnostics-body">
                 <div class="diag-row">
@@ -356,7 +356,7 @@ function showDiagnosticsResults(results) {
                 </div>
             </div>
             <div class="diagnostics-footer">
-                <button class="btn btn-secondary" onclick="this.closest('.mizzi-diagnostics-modal').remove()">Close</button>
+                <button class="btn btn-secondary" data-action="close-diagnostics-modal">Close</button>
             </div>
         </div>
     `;
@@ -447,7 +447,7 @@ const MizziWidget = {
                     <span class="mizzi-icon">😇</span>
                     <span>Mizzi</span>
                 </div>
-                <button class="mizzi-close" onclick="MizziWidget.toggle()">✕</button>
+                <button class="mizzi-close" data-action="mizzi-widget-toggle">✕</button>
             </div>
             <div class="mizzi-content">
                 <div class="mizzi-status-section">
@@ -481,16 +481,16 @@ const MizziWidget = {
                     </div>
                 </div>
                 <div class="mizzi-actions">
-                    <button onclick="MizziWidget.newChat()" class="mizzi-action-btn">
+                    <button data-action="mizzi-widget-new-chat" class="mizzi-action-btn">
                         ✏️ New Chat
                     </button>
-                    <button onclick="MizziWidget.toggleMode()" class="mizzi-action-btn" id="mizzi-mode-toggle-btn">
+                    <button data-action="mizzi-widget-toggle-mode" class="mizzi-action-btn" id="mizzi-mode-toggle-btn">
                         🔒 Mission Mode
                     </button>
-                    <button onclick="MizziWidget.goToEvidence()" class="mizzi-action-btn">
+                    <button data-action="mizzi-widget-go-to-evidence" class="mizzi-action-btn">
                         🔍 Evidence
                     </button>
-                    <button onclick="MizziWidget.openDevTools()" class="mizzi-action-btn">
+                    <button data-action="mizzi-widget-open-devtools" class="mizzi-action-btn">
                         🛠️ DevTools
                     </button>
                 </div>
@@ -744,6 +744,71 @@ const MizziWidget = {
     }
 };
 
+/**
+ * Event delegation for all Mizzi click handlers
+ * Replaces inline onclick handlers with secure data-action pattern
+ */
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+
+    switch (action) {
+        case 'mizzi-action':
+            {
+                const actionType = target.dataset.type;
+                if (window.handleMizziAction) {
+                    window.handleMizziAction(actionType);
+                }
+            }
+            break;
+
+        case 'close-diagnostics-modal':
+            {
+                const modal = target.closest('.mizzi-diagnostics-modal');
+                if (modal) {
+                    modal.remove();
+                }
+            }
+            break;
+
+        case 'mizzi-widget-toggle':
+            if (window.MizziWidget) {
+                window.MizziWidget.toggle();
+            }
+            break;
+
+        case 'mizzi-widget-new-chat':
+            if (window.MizziWidget) {
+                window.MizziWidget.newChat();
+            }
+            break;
+
+        case 'mizzi-widget-toggle-mode':
+            if (window.MizziWidget) {
+                window.MizziWidget.toggleMode();
+            }
+            break;
+
+        case 'mizzi-widget-go-to-evidence':
+            if (window.MizziWidget) {
+                window.MizziWidget.goToEvidence();
+            }
+            break;
+
+        case 'mizzi-widget-open-devtools':
+            if (window.MizziWidget) {
+                window.MizziWidget.openDevTools();
+            }
+            break;
+
+        default:
+            // Ignore actions handled by other files
+            break;
+    }
+});
+
 // Auto-init Mizzi Widget when DOM ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => MizziWidget.init());
@@ -751,5 +816,5 @@ if (document.readyState === 'loading') {
     MizziWidget.init();
 }
 
-// Expose globally for inline onclick handlers
+// Expose globally
 window.MizziWidget = MizziWidget;

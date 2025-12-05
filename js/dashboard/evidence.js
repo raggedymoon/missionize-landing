@@ -190,10 +190,10 @@ function showEvidenceDetails(evidence) {
             </div>
 
             <div style="margin-top: 1.5rem;">
-                <button class="btn btn-secondary" onclick="alert('View Raw JSON - Not implemented')">
+                <button class="btn btn-secondary" data-action="view-raw-json">
                     View Raw JSON
                 </button>
-                <button class="btn btn-secondary" onclick="copyToClipboard('${evidence.evidenceHash}')" style="margin-left: 0.5rem;">
+                <button class="btn btn-secondary" data-action="copy-hash" data-hash="${escapeHtml(evidence.evidenceHash)}" style="margin-left: 0.5rem;">
                     Copy Hash
                 </button>
             </div>
@@ -251,3 +251,19 @@ function escapeHtml(text) {
 export async function refreshEvidenceData() {
     return await fetchEvidenceData({ apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai' });
 }
+
+// Event delegation for dynamic button actions
+document.addEventListener('click', (e) => {
+    const action = e.target.dataset.action;
+
+    if (action === 'view-raw-json') {
+        alert('View Raw JSON - Not implemented');
+    } else if (action === 'copy-hash') {
+        const hash = e.target.dataset.hash;
+        if (hash) {
+            navigator.clipboard.writeText(hash).then(() => {
+                alert('Hash copied to clipboard!');
+            });
+        }
+    }
+});

@@ -15,7 +15,7 @@
 </head>
 <body>
     <h1>🔧 Missionize API Diagnostic Tool</h1>
-    <button onclick="runAllTests()">Run All Tests</button>
+    <button data-action="run-all-tests">Run All Tests</button>
     <div id="results"></div>
 
     <script>
@@ -148,6 +148,18 @@
                 }
             }
         }
+
+        // Event delegation for click handlers
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            if (action === 'run-all-tests') {
+                runAllTests();
+            }
+        });
     </script>
 </body>
 </html>

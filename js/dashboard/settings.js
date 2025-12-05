@@ -51,7 +51,7 @@ export function render(container, appState) {
                 </div>
 
                 <div style="margin-top: 1rem;">
-                    <button class="btn btn-primary" onclick="handleSaveApiUrl()">
+                    <button class="btn btn-primary" data-action="save-api-url">
                         Save API URL
                     </button>
                 </div>
@@ -72,8 +72,8 @@ export function render(container, appState) {
                             </div>
                         </div>
                         <div class="toggle-switch ${settings.enableEnterpriseMode ? 'active' : ''}"
-                             data-setting="enable_enterprise_mode"
-                             onclick="handleToggle(this)">
+                             data-action="toggle"
+                             data-setting="enable_enterprise_mode">
                             <div class="toggle-slider"></div>
                         </div>
                     </div>
@@ -90,8 +90,8 @@ export function render(container, appState) {
                             </div>
                         </div>
                         <div class="toggle-switch ${settings.showMultiWorkerView ? 'active' : ''}"
-                             data-setting="show_multiworker_view"
-                             onclick="handleToggle(this)">
+                             data-action="toggle"
+                             data-setting="show_multiworker_view">
                             <div class="toggle-slider"></div>
                         </div>
                     </div>
@@ -108,8 +108,8 @@ export function render(container, appState) {
                             </div>
                         </div>
                         <div class="toggle-switch ${settings.enableMizziIndicators ? 'active' : ''}"
-                             data-setting="enable_mizzi_indicators"
-                             onclick="handleToggle(this)">
+                             data-action="toggle"
+                             data-setting="enable_mizzi_indicators">
                             <div class="toggle-slider"></div>
                         </div>
                     </div>
@@ -151,40 +151,52 @@ export function render(container, appState) {
                             This will clear all dashboard preferences and return to defaults.
                         </div>
                     </div>
-                    <button class="btn btn-secondary" onclick="handleResetSettings()" style="border-color: var(--color-error); color: var(--color-error);">
+                    <button class="btn btn-secondary" data-action="reset-settings" style="border-color: var(--color-error); color: var(--color-error);">
                         Reset to Defaults
                     </button>
                 </div>
             </div>
         </div>
     `;
-
-    // Note: Event handlers are attached inline via onclick for simplicity
-    // In production, consider using addEventListener for better separation
 }
 
 /**
- * Handle toggle switch
+ * Escape HTML helper
  */
-window.handleToggle = function(element) {
-    const setting = element.dataset.setting;
-    const isActive = element.classList.contains('active');
-    const newValue = !isActive;
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    // Toggle visual state
-    element.classList.toggle('active');
+/**
+ * Event delegation handler for settings actions
+ */
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
 
-    // Save to localStorage
-    saveSetting(setting, newValue);
+    const action = target.dataset.action;
 
-    // Show confirmation
-    console.log(`Setting "${setting}" updated to: ${newValue}`);
-};
+    switch (action) {
+        case 'save-api-url':
+            handleSaveApiUrl();
+            break;
+
+        case 'toggle':
+            handleToggle(target);
+            break;
+
+        case 'reset-settings':
+            handleResetSettings();
+            break;
+    }
+});
 
 /**
  * Handle save API URL
  */
-window.handleSaveApiUrl = function() {
+function handleSaveApiUrl() {
     const input = document.getElementById('api-base-url');
     const newUrl = input.value.trim();
 
@@ -205,12 +217,30 @@ window.handleSaveApiUrl = function() {
     saveSetting('missionize_api_url', newUrl);
 
     alert('API URL saved successfully! The change will take effect on next page load.');
-};
+}
+
+/**
+ * Handle toggle switch
+ */
+function handleToggle(element) {
+    const setting = element.dataset.setting;
+    const isActive = element.classList.contains('active');
+    const newValue = !isActive;
+
+    // Toggle visual state
+    element.classList.toggle('active');
+
+    // Save to localStorage
+    saveSetting(setting, newValue);
+
+    // Show confirmation
+    console.log(`Setting "${setting}" updated to: ${newValue}`);
+}
 
 /**
  * Handle reset settings
  */
-window.handleResetSettings = function() {
+function handleResetSettings() {
     if (!confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
         return;
     }
@@ -227,13 +257,4 @@ window.handleResetSettings = function() {
     setTimeout(() => {
         window.location.reload();
     }, 1000);
-};
-
-/**
- * Escape HTML helper
- */
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }

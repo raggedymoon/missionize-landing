@@ -153,7 +153,7 @@ function renderPatternCard(pattern) {
                 </div>
             </div>
             <div style="margin-top: 1rem;">
-                <button class="btn btn-secondary" style="width: 100%;" onclick="alert('Use Pattern: ${escapeHtml(pattern.name)} - Not implemented')">
+                <button class="btn btn-secondary" style="width: 100%;" data-action="use-pattern" data-pattern-name="${escapeHtml(pattern.name)}">
                     Use Pattern
                 </button>
             </div>
@@ -176,3 +176,13 @@ function escapeHtml(text) {
 export async function refreshPatternsData() {
     return await fetchPatternsData({ apiBaseUrl: localStorage.getItem('missionize_api_url') || 'https://api.missionize.ai' });
 }
+
+// Event delegation for dynamic button actions
+document.addEventListener('click', (e) => {
+    const action = e.target.dataset.action;
+
+    if (action === 'use-pattern') {
+        const patternName = e.target.dataset.patternName;
+        alert(`Use Pattern: ${patternName} - Not implemented`);
+    }
+});
