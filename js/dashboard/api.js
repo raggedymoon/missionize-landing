@@ -197,5 +197,14 @@ export async function runMission(task, messages, appState) {
         enable_pattern_learning: true
     };
 
-    return await postJson('/run-custom', payload, appState);
+    // Add timeout for long-running consensus (120 seconds)
+    const timeoutMs = 120000;
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Mission Mode timeout after ${timeoutMs/1000}s. Consensus pipeline may be taking longer than expected. Try again or use Fast mode.`)), timeoutMs);
+    });
+
+    return await Promise.race([
+        postJson('/run-custom', payload, appState),
+        timeoutPromise
+    ]);
 }

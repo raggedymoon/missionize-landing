@@ -680,10 +680,14 @@ async function sendToBackend(message, appState) {
         // ROUTING: Check chatMode and call appropriate backend
         if (chatMode === 'mission') {
             // ====== MISSION MODE: Full consensus pipeline ======
-            console.log('[Chat] MISSION MODE: Calling /run-custom');
+            console.log('[Chat] MISSION MODE: Calling /run-custom with task:', message);
+            console.log('[Chat] MISSION MODE: Conversation history:', messages.length, 'messages');
 
+            const startTime = Date.now();
             const response = await runMission(message, messages, appState);
-            console.log('[Chat] MISSION MODE: Got response:', response);
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            console.log(`[Chat] MISSION MODE: Got response in ${elapsed}s:`, response);
 
             // Extract evidence data
             aiMessage.evidenceData = {
@@ -703,6 +707,11 @@ async function sendToBackend(message, appState) {
             aiMessage.mizziStatus = response.guardian_approved ? 'passed' : 'failed';
 
             console.log('[Chat] MISSION MODE: Evidence data stored:', aiMessage.evidenceData);
+            console.log('[Chat] MISSION MODE: Re-rendering to show evidence panel...');
+
+            // Save and re-render to show the completed mission with evidence
+            saveConversations();
+            await render(container, appState);
 
         } else {
             // ====== FAST MODE: Direct LLM calls (existing logic) ======
@@ -732,19 +741,25 @@ async function sendToBackend(message, appState) {
 
     } catch (error) {
         // Handle error
-        aiMessage.content = `**Error:** ${error.message}\n\nPlease check:\n• Is the backend running?\n• Is the API URL correct? (${getApiBaseUrl(appState)})\n• Check browser console for details`;
+        console.error(`[Chat] ${chatMode.toUpperCase()} MODE ERROR:`, error);
+
+        let errorDetails = '';
+        if (chatMode === 'mission') {
+            errorDetails = '\n\n**Mission Mode Details:**\n• Consensus pipeline may take 30-60 seconds\n• Check Network tab for /run-custom request\n• Verify API key is set in localStorage';
+        } else {
+            errorDetails = '\n\n**Fast Mode Details:**\n• Check Network tab for /api/chat/send request\n• Verify SSE streaming is working';
+        }
+
+        aiMessage.content = `**Error:** ${error.message}\n\nPlease check:\n• Is the backend running?\n• Is the API URL correct? (${getApiBaseUrl(appState)})\n• Check browser console for full error details${errorDetails}`;
         aiMessage.mizziStatus = 'error';
         aiMessage.evidenceData = null;
         saveConversations();
 
-        console.error('Backend API error:', error);
+        // Re-render to show error message
+        await render(container, appState);
     }
 
     isStreaming = false;
-
-    // Don't re-render here - the streaming handler already updated the DOM
-    // and saved to localStorage. Re-rendering would cause a flash/reset.
-    // Just scroll to bottom to ensure visibility
     scrollToBottom();
 }
 
