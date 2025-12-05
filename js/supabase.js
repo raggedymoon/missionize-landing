@@ -4,6 +4,10 @@
  */
 
 // Supabase credentials
+// SECURITY NOTE: These credentials are INTENTIONALLY PUBLIC (anon key, not service_role).
+// Supabase anon keys are designed to be exposed in frontend code.
+// Data security is enforced by Row Level Security (RLS) policies on the database.
+// NEVER expose service_role keys in frontend code.
 const SUPABASE_URL = 'https://blgqnzcanuszinjckspp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZ3FuemNhbnVzemluamNrc3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MTcyNDgsImV4cCI6MjA4MDA5MzI0OH0.4yOM98qyk-UJ2pYPRsT_stXCv8poT0lO8qeMdf7MwNM';
 
