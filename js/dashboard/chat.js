@@ -15,6 +15,73 @@ let currentAppState = null;
 let chatMode = 'fast'; // 'fast' or 'mission'
 let currentBuildTraceData = null;
 
+// Progress tracking for Mission Mode
+let missionProgressInterval = null;
+let missionStartTime = null;
+
+const PROGRESS_STEPS = [
+    { agent: 'P', name: 'Proposer', status: 'Analyzing your request...' },
+    { agent: 'C', name: 'Challenger', status: 'Reviewing the proposal...' },
+    { agent: 'A', name: 'Arbiter', status: 'Making a decision...' },
+    { agent: 'D', name: 'Devil\'s Advocate', status: 'Checking edge cases...' },
+    { agent: 'G', name: 'Guardian Angel', status: 'Final safety review...' }
+];
+
+function renderMissionProgress(currentStep = 0, elapsedSeconds = 0) {
+    const step = PROGRESS_STEPS[Math.min(currentStep, PROGRESS_STEPS.length - 1)];
+    return `
+        <div class="mission-progress-live">
+            <div class="mission-progress-spinner"></div>
+            <div class="mission-progress-info">
+                <div class="mission-progress-text">
+                    <span class="progress-agent-badge">${step.agent}</span> ${step.status}
+                </div>
+                <div class="mission-progress-steps">
+                    ${PROGRESS_STEPS.map((s, i) => `
+                        <div class="mission-step ${i < currentStep ? 'complete' : ''} ${i === currentStep ? 'active' : ''}">
+                            ${s.agent}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="mission-progress-time">${elapsedSeconds}s</div>
+        </div>
+    `;
+}
+
+function startMissionProgress(messageElement) {
+    missionStartTime = Date.now();
+    let currentStep = 0;
+
+    // Find or create progress container
+    let progressContainer = messageElement.querySelector('.mission-progress-container');
+    if (!progressContainer) {
+        progressContainer = document.createElement('div');
+        progressContainer.className = 'mission-progress-container';
+        const contentEl = messageElement.querySelector('.message-content');
+        if (contentEl) {
+            contentEl.innerHTML = '';
+            contentEl.appendChild(progressContainer);
+        }
+    }
+
+    // Initial render
+    progressContainer.innerHTML = renderMissionProgress(0, 0);
+
+    missionProgressInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - missionStartTime) / 1000);
+        currentStep = Math.min(Math.floor(elapsed / 8), 4); // ~8s per step
+        progressContainer.innerHTML = renderMissionProgress(currentStep, elapsed);
+    }, 1000);
+}
+
+function stopMissionProgress() {
+    if (missionProgressInterval) {
+        clearInterval(missionProgressInterval);
+        missionProgressInterval = null;
+    }
+}
+
 // Available models (will be populated from backend)
 let MODELS = [
     // Fallback models if backend is unavailable
@@ -695,9 +762,18 @@ async function sendToBackend(message, appState) {
             console.log('[Chat] MISSION MODE: Calling /run-custom with task:', message);
             console.log('[Chat] MISSION MODE: Conversation history:', messages.length, 'messages');
 
+            // Start progress indicator
+            const aiMessageEl = container.querySelector('.message-ai:last-child');
+            if (aiMessageEl) {
+                startMissionProgress(aiMessageEl);
+            }
+
             const startTime = Date.now();
             const response = await runMission(message, messages, appState);
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            // Stop progress indicator
+            stopMissionProgress();
 
             console.log(`[Chat] MISSION MODE: Got response in ${elapsed}s:`, response);
 
